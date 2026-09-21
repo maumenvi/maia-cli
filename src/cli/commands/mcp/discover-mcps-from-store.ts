@@ -10,5 +10,6 @@ export async function discoverMcpsFromStore(
   if (query.trim()) {
     console.log('Searching MCPs in the catalog... this may take a few seconds.');
   }
-  return searchCatalog(store.loadManifest(), 'mcp', query, 20);
+  const { results } = await searchCatalog(store.loadManifest(), 'mcp', query, 20);
+  return results;
 }

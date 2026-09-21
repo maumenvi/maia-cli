@@ -10,5 +10,6 @@ export async function discoverSkillsFromStore(
   if (query.trim()) {
     console.log('Searching skills in the catalog... this may take a few seconds.');
   }
-  return searchCatalog(store.loadManifest(), 'skill', query, 20);
+  const { results } = await searchCatalog(store.loadManifest(), 'skill', query, 20);
+  return results;
 }

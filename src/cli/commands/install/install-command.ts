@@ -44,7 +44,7 @@ export const installCommand: CommandHandler = async (args, { store }) => {
   if (kind === 'skill') {
     const isLocal = Boolean(findRegistryEntry('skill', name));
     if (!explicitSource && !isLocal) {
-      const results = await searchCatalog(store.loadManifest(), 'skill', name, 10);
+      const { results } = await searchCatalog(store.loadManifest(), 'skill', name, 10);
       const match = bestCatalogMatch(results, name);
       if (!match) {
         throw new Error(`Skill "${name}" was not found in configured catalogs`);
@@ -80,7 +80,7 @@ export const installCommand: CommandHandler = async (args, { store }) => {
     store.buildLock();
   } else if (kind === 'mcp') {
     if (!explicitSource && !hasManualMcpConfig(flags)) {
-      const results = await searchCatalog(store.loadManifest(), 'mcp', name, 10);
+      const { results } = await searchCatalog(store.loadManifest(), 'mcp', name, 10);
       const match = bestCatalogMatch(results, name);
       if (!match) {
         throw new Error(`MCP "${name}" was not found in configured catalogs`);
