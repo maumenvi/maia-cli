@@ -11,6 +11,37 @@ catálogo, descoberta e gerenciamento de fontes: manter um inventário local de 
 MCPs e tools, consultá-lo, consultar fontes remotas/Git configuradas, e lidar
 graciosamente com resultados indisponíveis ou vazios."
 
+## Clarifications
+
+### Session 2026-09-21
+
+- Q: O FR-004 ("consultar fontes remotas configuradas") inclui as fontes Git
+  adicionadas via `source add` (US3), ou se refere apenas aos provedores de
+  busca (registries)? → B: Manter separados — `registries` são fontes de
+  busca (pesquisáveis por palavra-chave); `sources` Git são origens de
+  instalação (de onde um pacote já identificado é baixado/travado). FR-004
+  refere-se apenas aos provedores de busca configurados em `registries`.
+- Q: Quando uma fonte Git já configurada tem sua confiança revogada
+  (`trusted: true` → `false`), o sistema deve reagir além de gravar a
+  mudança? → C: Fora de escopo desta spec — `trusted` é apenas um atributo
+  gravado nesta spec de catálogo/descoberta; qualquer reação (alertar sobre
+  pacotes já instalados, bloquear novas instalações) pertence ao ciclo de
+  vida de instalação ou à segurança de runtime.
+- Q: Quando uma busca falha para algumas fontes mas outras respondem
+  normalmente, a falha deve aparecer junto dos resultados, ou só quando
+  nenhuma fonte responder? → A: Sempre reportar falhas de fonte junto dos
+  resultados, mesmo quando outras fontes retornam resultados — uma falha
+  parcial silenciosa esconderia cobertura incompleta da busca.
+- Q: Quando `source add` recebe uma URL que não parece um repositório Git
+  válido, o sistema deve rejeitar imediatamente ou aceitar e falhar depois?
+  → A: Rejeitar imediatamente no `add` com mensagem clara, sem alteração de
+  arquivo — consistente com o padrão de rejeição de entrada inválida já
+  usado em [[001-project-init-agents]].
+- Q: Quando uma busca retorna o mesmo identificador do catálogo local
+  (instalado) e de uma fonte remota, qual tem precedência na exibição? →
+  A: Local tem precedência — o resultado remoto duplicado é omitido da
+  exibição quando a capacidade já está instalada localmente.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Listar capacidades instaladas (Priority: P1)
@@ -68,8 +99,10 @@ para instalação.
 ### User Story 3 - Gerenciar fontes Git (Priority: P2)
 
 Como mantenedor, quero adicionar e listar as fontes Git nas quais meu projeto confia
-para capacidades remotas, para que descoberta e instalação possam extrair de um
-conjunto conhecido e auditável de origens.
+para capacidades remotas, para que a instalação possa extrair de um conjunto
+conhecido e auditável de origens. (Fontes Git são origens de instalação, não de
+busca — ver Clarifications; a busca por palavra-chave usa os provedores de
+`registries`, cobertos pela User Story 2.)
 
 **Why this priority**: Necessário para estender a descoberta além do catálogo local,
 mas um projeto pode operar apenas com capacidades locais sem isso, por isso fica
@@ -86,6 +119,9 @@ fonte aparece com sua referência e estado de confiança.
 2. **Given** uma ou mais fontes configuradas, **When** o mantenedor lista as fontes,
    **Then** cada uma é exibida com informação suficiente para identificar sua origem e
    estado de confiança.
+3. **Given** uma URL que não parece um repositório Git válido, **When** o mantenedor
+   tenta adicioná-la como fonte, **Then** o sistema rejeita a adição imediatamente com
+   uma mensagem clara e não altera o manifesto.
 
 ---
 
@@ -107,20 +143,27 @@ com uma indicação clara da falha — não um travamento silencioso ou crash.
 
 1. **Given** uma fonte inacessível e uma fonte acessível, **When** o desenvolvedor roda
    a descoberta, **Then** resultados da fonte acessível são retornados e a falha da
-   fonte indisponível é reportada.
+   fonte indisponível é reportada explicitamente junto dos resultados, não
+   silenciada pela presença de resultados de outra fonte.
 2. **Given** todas as fontes configuradas estão inacessíveis, **When** o desenvolvedor
    roda a descoberta, **Then** o sistema reporta claramente que nenhum resultado foi
    encontrado e não fabrica resultados.
 
 ### Edge Cases
 
-- O que acontece quando uma consulta retorna matches tanto do catálogo local quanto de
-  uma fonte remota com o mesmo identificador?
-- Como o sistema lida com uma referência de fonte Git sintaticamente inválida?
+- Quando uma consulta retorna matches tanto do catálogo local quanto de uma fonte
+  remota com o mesmo identificador, o resultado local (já instalado) tem
+  precedência e o resultado remoto duplicado é omitido da exibição.
+- Uma referência de fonte Git sintaticamente inválida (ex.: string vazia, sem
+  protocolo reconhecível) é rejeitada imediatamente por `source add`, com
+  mensagem clara e sem alteração de arquivo.
 - O que acontece quando a resposta de uma fonte remota está malformada ou excede um
   tamanho esperado?
-- Como o sistema lida com uma fonte que era confiável anteriormente mas foi
-  desde então descredenciada ou revogada?
+- Quando uma fonte muda de confiável para não confiável, o sistema apenas
+  grava o novo valor do atributo; nenhum alerta sobre capacidades já
+  instaladas ou bloqueio automático de novas instalações é responsabilidade
+  desta spec (ver [[003-capability-install-lifecycle]] e
+  [[005-mcp-server-security]]).
 
 ## Requirements *(mandatory)*
 
@@ -132,26 +175,39 @@ com uma indicação clara da falha — não um travamento silencioso ou crash.
   filtrável por tipo de capacidade (skills, MCPs, tools, ou todos).
 - **FR-003**: Comandos de listagem DEVEM aceitar uma consulta de texto livre e DEVEM
   suportar um modo de saída legível por máquina (JSON).
-- **FR-004**: O sistema DEVE consultar fontes remotas configuradas para descobrir
-  capacidades não presentes no inventário local, e DEVE usar identificadores canônicos
-  ao apresentar resultados para instalação.
+- **FR-004**: O sistema DEVE consultar os provedores de busca configurados
+  (`registries`) para descobrir capacidades não presentes no inventário local, e
+  DEVE usar identificadores canônicos ao apresentar resultados para instalação.
+  Fontes Git configuradas via FR-005 são origens de instalação, não provedores de
+  busca — não são consultadas por esta descoberta (ver Assumptions).
 - **FR-005**: O sistema DEVE disponibilizar comandos para adicionar uma fonte Git e
   para listar fontes Git configuradas, incluindo a referência e o estado de confiança
-  de cada fonte.
-- **FR-006**: Quando um resultado remoto estiver indisponível, a descoberta DEVE
-  tentar qualquer outra alternativa disponível e DEVE reportar claramente quando
-  nenhum resultado foi encontrado, em vez de retornar nada silenciosamente de forma
-  indistinguível de "não buscado".
+  de cada fonte. Adicionar uma fonte cuja URL não parece um repositório Git válido
+  DEVE ser rejeitado imediatamente com uma mensagem clara, sem alteração de arquivo.
+- **FR-006**: Quando uma fonte remota estiver indisponível, a descoberta DEVE
+  tentar qualquer outra alternativa disponível e DEVE reportar explicitamente quais
+  fontes falharam, junto com os resultados retornados pelas fontes que
+  responderam — mesmo quando ao menos uma fonte retorna resultados, a falha
+  parcial de outra fonte NÃO DEVE ficar silenciosa. Quando nenhum resultado for
+  encontrado, o sistema DEVE declarar isso claramente, distinto de uma falha de
+  fonte.
 - **FR-007**: Descoberta e listagem NÃO DEVEM reportar um match bem-sucedido quando
   nenhuma capacidade de fato satisfaz a consulta.
+- **FR-008**: Quando um resultado de busca remota compartilha o mesmo identificador
+  canônico de uma capacidade já instalada localmente, o sistema DEVE dar precedência
+  ao resultado local e DEVE omitir o resultado remoto duplicado da exibição.
 
 ### Key Entities
 
 - **Catalog (Catálogo)**: O inventário local de skills, MCPs e tools conhecidas por um
   projeto, independentemente de cada entrada estar atualmente instalada.
-- **Source (Fonte)**: Uma origem Git configurada (ou outro provedor) que a descoberta
-  consulta em busca de capacidades remotas, carregando uma referência e um estado de
-  confiança.
+- **Source (Fonte)**: Uma origem Git configurada de onde uma capacidade já
+  identificada é instalada/travada, carregando uma referência e um estado de
+  confiança. Distinta de um provedor de busca (ver Registry abaixo) — não é
+  consultada por descoberta/busca (ver Clarifications).
+- **Search Provider (Provedor de Busca)**: Um provedor configurado em
+  `registries` (ex.: skills.sh, registro MCP) que responde a consultas por
+  palavra-chave durante a descoberta (FR-004).
 - **Capability Identifier (Identificador de Capacidade)**: O nome canônico,
   qualificado pela fonte, usado para referenciar de forma inequívoca uma skill, MCP,
   ou tool durante a descoberta e a instalação (ver
@@ -166,14 +222,19 @@ com uma indicação clara da falha — não um travamento silencioso ou crash.
 - **SC-002**: 100% dos casos de "nenhum resultado encontrado" são reportados de forma
   distinta de condições de erro e de resultados vazios bem-sucedidos.
 - **SC-003**: Uma única fonte remota inacessível nunca impede a descoberta de retornar
-  resultados disponíveis de outras fontes configuradas.
+  resultados disponíveis de outras fontes configuradas, e 100% das falhas parciais de
+  fonte são visíveis ao usuário junto dos resultados retornados, mesmo quando a busca
+  como um todo teve sucesso.
 - **SC-004**: Todo resultado retornado por busca ou listagem carrega um identificador
   canônico que pode ser usado diretamente para instalação sem consulta adicional.
 
 ## Assumptions
 
-- "Fontes remotas" nesta iteração significa fontes baseadas em Git; outros tipos de
-  provedor podem ser adicionados depois sem alterar a intenção deste spec.
+- "Provedores de busca" (`registries`, FR-004) e "fontes Git" (`sources`, FR-005)
+  são conceitos distintos e permanecem assim nesta iteração: provedores de busca
+  respondem a consultas por palavra-chave; fontes Git são origens de onde um
+  pacote já identificado é instalado/travado. Unificá-los (tornar fontes Git
+  pesquisáveis) está fora de escopo.
 - Estado de confiança para uma fonte é um atributo simples (ex.: confiável/não
   confiável) em vez de um modelo de permissões completo; autorização granular é
   coberta pelas restrições de agente/LLM em [[003-capability-install-lifecycle]] e

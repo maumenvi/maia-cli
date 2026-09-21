@@ -31,6 +31,9 @@
 
 ## Notes
 
-- Todos os itens passam. Spec migrado e desmembrado de `.specs/001-maia-cli.spec.md`
-  como parte da reorganização do projeto; pronto para `/speckit-clarify` (opcional) ou
-  `/speckit-plan`.
+- Todos os itens passam. Spec revalidado após a sessão de clarificação de
+  2026-09-21 (5 perguntas respondidas: separação sources/registries,
+  revogação de trust fora de escopo, UX de falha parcial de fonte sempre
+  visível, validação de URL de fonte no add, precedência local sobre
+  remoto em duplicidade de identificador). Pronto para `/speckit-plan`
+  (já em andamento).
