@@ -1,5 +1,7 @@
 # Regras
-Principios não-negociaveis que toda spec, plano, tarefa e codigo seguem.
+Principios não-negociaveis 
+
+Fluxo toda spec, plano, tarefa, codigo, code review, correção do code review caso necessario, teste, revisão humana (caso solicitado pular essa parte) seguem.
 
 1. Teste e parte da tarefa. Nenhuma logica nova entra sem teste. Typecheck e teste sempre verdes
 2. Seguranca por padrão. Sem segredos no repo. Acoes destrutivas passam por guardrails (deny list + pre-commit), não pela confiança no modelo.
