@@ -3,7 +3,9 @@ import path from 'node:path';
 
 import type { CommandHandler } from '../contracts/command-handler.ts';
 import { normalizeKind } from '../shared/kind.ts';
+import { removeEmptyFallbackDir } from '../shared/workspace/remove-empty-fallback-dir.ts';
 import { removeMaterializedFile } from '../shared/workspace/remove-materialized-file.ts';
+import { resolveSkillsDir } from '../shared/workspace/resolve-skills-dir.ts';
 import { resolveWorkspaceRoot } from '../shared/workspace/resolve-workspace-root.ts';
 
 /** Performs the remove command operation. */
@@ -40,6 +42,7 @@ export const removeCommand: CommandHandler = async (args, { store }) => {
         break;
       }
     }
+    removeEmptyFallbackDir(resolveSkillsDir(store));
   }
 
   if (kind === 'mcp') {

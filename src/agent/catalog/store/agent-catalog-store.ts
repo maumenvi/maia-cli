@@ -1,8 +1,9 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import type { AccessDefaultPolicy } from '../../access/policy/access-default-policy.ts';
+import { writeFileAtomic } from '../../../shared/fs/write-file-atomic.ts';
 import { agentRegistry } from '../../agents/registry/agent-registry.ts';
 import { findAgent } from '../../agents/registry/find-agent.ts';
 import { buildCatalogContexts } from '../context/build.ts';
@@ -53,6 +54,15 @@ export class AgentCatalogStore {
     return normalizeManifest(parsed);
   }
 
+  /** Reads the manifest's raw `maiaVersion` field, if present, without normalizing it. */
+  peekManifestVersion(): string | undefined {
+    if (!existsSync(this.paths.manifest)) {
+      return undefined;
+    }
+    const parsed = safeParseJson<Partial<SourcesManifest>>(readFileSync(this.paths.manifest, 'utf8'), this.paths.manifest);
+    return parsed.maiaVersion;
+  }
+
   /** Performs the get llm access default operation. */
   getLlmAccessDefault(): AccessDefaultPolicy {
     return this.loadManifest().config.llmAccessDefault;
@@ -69,7 +79,7 @@ export class AgentCatalogStore {
   saveManifest(manifest: SourcesManifest): void {
     mkdirSync(this.paths.stateDir, { recursive: true });
     mkdirSync(path.dirname(this.paths.manifest), { recursive: true });
-    writeFileSync(this.paths.manifest, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+    writeFileAtomic(this.paths.manifest, `${JSON.stringify(manifest, null, 2)}\n`);
   }
 
   /** Performs the load lock operation. */
@@ -83,7 +93,7 @@ export class AgentCatalogStore {
   /** Performs the save lock operation. */
   saveLock(lock: SourceLock): void {
     mkdirSync(path.dirname(this.paths.lock), { recursive: true });
-    writeFileSync(this.paths.lock, `${JSON.stringify(lock, null, 2)}\n`, 'utf8');
+    writeFileAtomic(this.paths.lock, `${JSON.stringify(lock, null, 2)}\n`);
   }
 
   /** Performs the add source operation. */
