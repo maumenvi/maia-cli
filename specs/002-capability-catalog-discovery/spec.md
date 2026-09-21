@@ -1,4 +1,4 @@
-# Feature Specification: Capability Catalog & Discovery
+# Feature Specification: Catálogo de Capacidades & Descoberta
 
 **Feature Branch**: `002-capability-catalog-discovery`
 
@@ -6,164 +6,177 @@
 
 **Status**: Draft
 
-**Input**: User description: "Split from .specs/001-maia-cli.spec.md — the catalog,
-discovery, and source-management scope: maintaining a local inventory of skills, MCPs,
-and tools, querying it, querying configured remote/Git sources, and handling
-unavailable or empty results gracefully."
+**Input**: Descrição do usuário: "Split de .specs/001-maia-cli.spec.md — o escopo de
+catálogo, descoberta e gerenciamento de fontes: manter um inventário local de skills,
+MCPs e tools, consultá-lo, consultar fontes remotas/Git configuradas, e lidar
+graciosamente com resultados indisponíveis ou vazios."
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - List installed capabilities (Priority: P1)
+### User Story 1 - Listar capacidades instaladas (Priority: P1)
 
-As a developer, I want to list the skills, MCPs, and tools currently known to my
-project, so I can see what is available without reading configuration files by hand.
+Como desenvolvedor, quero listar as skills, MCPs e tools atualmente conhecidas pelo meu
+projeto, para ver o que está disponível sem ler arquivos de configuração manualmente.
 
-**Why this priority**: Listing is the most frequently used, lowest-risk entry point into
-the catalog and underlies every other discovery flow.
+**Why this priority**: Listagem é o ponto de entrada mais usado e de menor risco para o
+catálogo, e serve de base para todos os outros fluxos de descoberta.
 
-**Independent Test**: With at least one capability installed, run the listing command
-and verify it appears with correct type and identifying metadata; run it in an empty
-project and verify an empty, non-error result.
+**Independent Test**: Com ao menos uma capacidade instalada, rodar o comando de
+listagem e verificar que ela aparece com o tipo e os metadados de identificação
+corretos; rodá-lo em um projeto vazio e verificar um resultado vazio, sem erro.
 
 **Acceptance Scenarios**:
 
-1. **Given** a project with installed capabilities, **When** the developer runs the
-   listing command, **Then** all installed skills, MCPs, and tools are shown grouped by
-   type.
-2. **Given** a project with installed capabilities, **When** the developer requests JSON
-   output, **Then** the system emits a valid JSON payload containing the same inventory.
-3. **Given** a project with no installed capabilities, **When** the developer lists them,
-   **Then** the system reports an empty inventory rather than an error.
+1. **Given** um projeto com capacidades instaladas, **When** o desenvolvedor roda o
+   comando de listagem, **Then** todas as skills, MCPs e tools instaladas são exibidas
+   agrupadas por tipo.
+2. **Given** um projeto com capacidades instaladas, **When** o desenvolvedor solicita
+   saída em JSON, **Then** o sistema emite um payload JSON válido contendo o mesmo
+   inventário.
+3. **Given** um projeto sem capacidades instaladas, **When** o desenvolvedor as lista,
+   **Then** o sistema reporta um inventário vazio em vez de um erro.
 
 ---
 
-### User Story 2 - Search the catalog by query (Priority: P1)
+### User Story 2 - Buscar no catálogo por consulta (Priority: P1)
 
-As a developer, I want to search for skills, MCPs, or tools by keyword, so I can find
-relevant capabilities without knowing exact identifiers in advance.
+Como desenvolvedor, quero buscar skills, MCPs ou tools por palavra-chave, para
+encontrar capacidades relevantes sem conhecer identificadores exatos de antemão.
 
-**Why this priority**: Query-based discovery is the primary way developers find new
-capabilities to install; it is the main value driver of having a catalog at all.
+**Why this priority**: Descoberta baseada em consulta é a forma primária de
+desenvolvedores encontrarem novas capacidades para instalar; é o principal motor de
+valor de ter um catálogo.
 
-**Independent Test**: Run a listing/search command with a query term known to match an
-existing local or remote capability, and verify matching results are returned with
-canonical identifiers usable for installation.
+**Independent Test**: Rodar um comando de listagem/busca com um termo de consulta
+conhecido por dar match em uma capacidade local ou remota existente, e verificar que
+resultados correspondentes são retornados com identificadores canônicos utilizáveis
+para instalação.
 
 **Acceptance Scenarios**:
 
-1. **Given** a query that matches one or more known capabilities, **When** the developer
-   searches, **Then** matching results are returned with a canonical identifier for each.
-2. **Given** a query that matches nothing, **When** the developer searches, **Then** the
-   system clearly states that no results were found rather than returning an empty list
-   indistinguishable from an error or from "not searched."
-3. **Given** a query, **When** the developer requests JSON output, **Then** the results
-   are emitted as valid JSON.
+1. **Given** uma consulta que dá match em uma ou mais capacidades conhecidas, **When**
+   o desenvolvedor busca, **Then** resultados correspondentes são retornados com um
+   identificador canônico para cada um.
+2. **Given** uma consulta que não dá match em nada, **When** o desenvolvedor busca,
+   **Then** o sistema declara claramente que nenhum resultado foi encontrado, em vez de
+   retornar uma lista vazia indistinguível de um erro ou de "não buscado".
+3. **Given** uma consulta, **When** o desenvolvedor solicita saída em JSON, **Then** os
+   resultados são emitidos como JSON válido.
 
 ---
 
-### User Story 3 - Manage Git sources (Priority: P2)
+### User Story 3 - Gerenciar fontes Git (Priority: P2)
 
-As a maintainer, I want to add and list the Git sources my project trusts for remote
-capabilities, so discovery and installation can pull from a known, auditable set of
-origins.
+Como mantenedor, quero adicionar e listar as fontes Git nas quais meu projeto confia
+para capacidades remotas, para que descoberta e instalação possam extrair de um
+conjunto conhecido e auditável de origens.
 
-**Why this priority**: Needed to extend discovery beyond the local catalog, but a
-project can operate on local-only capabilities without it, so it ranks below core
-listing/search.
+**Why this priority**: Necessário para estender a descoberta além do catálogo local,
+mas um projeto pode operar apenas com capacidades locais sem isso, por isso fica
+abaixo de listagem/busca principal.
 
-**Independent Test**: Add a Git source, list sources, and verify the new source appears
-with its reference and trust state.
+**Independent Test**: Adicionar uma fonte Git, listar fontes, e verificar que a nova
+fonte aparece com sua referência e estado de confiança.
 
 **Acceptance Scenarios**:
 
-1. **Given** a valid Git source reference, **When** the maintainer adds it, **Then** the
-   source appears in the source list with its reference and trust state.
-2. **Given** one or more configured sources, **When** the maintainer lists sources,
-   **Then** each is shown with enough information to identify its origin and trust
-   state.
+1. **Given** uma referência de fonte Git válida, **When** o mantenedor a adiciona,
+   **Then** a fonte aparece na lista de fontes com sua referência e estado de
+   confiança.
+2. **Given** uma ou mais fontes configuradas, **When** o mantenedor lista as fontes,
+   **Then** cada uma é exibida com informação suficiente para identificar sua origem e
+   estado de confiança.
 
 ---
 
-### User Story 4 - Graceful handling of unavailable remote sources (Priority: P2)
+### User Story 4 - Tratamento gracioso de fontes remotas indisponíveis (Priority: P2)
 
-As a developer, I want discovery to degrade gracefully when a remote source is
-unreachable, so a single flaky source doesn't block me from finding capabilities
-elsewhere.
+Como desenvolvedor, quero que a descoberta se degrade graciosamente quando uma fonte
+remota estiver inacessível, para que uma única fonte instável não me impeça de
+encontrar capacidades em outro lugar.
 
-**Why this priority**: Reliability concern that affects trust in the tool under normal
-network conditions, but only matters once remote sources exist (Story 3).
+**Why this priority**: Preocupação de confiabilidade que afeta a confiança na
+ferramenta em condições normais de rede, mas só importa uma vez que fontes remotas
+existam (User Story 3).
 
-**Independent Test**: Configure a source that is intentionally unreachable alongside a
-reachable one, run discovery, and verify results come from the reachable source with a
-clear indication of the failure — not a silent hang or crash.
+**Independent Test**: Configurar uma fonte intencionalmente inacessível junto com uma
+acessível, rodar a descoberta, e verificar que os resultados vêm da fonte acessível
+com uma indicação clara da falha — não um travamento silencioso ou crash.
 
 **Acceptance Scenarios**:
 
-1. **Given** one unreachable source and one reachable source, **When** the developer
-   runs discovery, **Then** results from the reachable source are returned and the
-   unavailable source's failure is reported.
-2. **Given** all configured sources are unreachable, **When** the developer runs
-   discovery, **Then** the system clearly reports that no results were found and does
-   not fabricate results.
+1. **Given** uma fonte inacessível e uma fonte acessível, **When** o desenvolvedor roda
+   a descoberta, **Then** resultados da fonte acessível são retornados e a falha da
+   fonte indisponível é reportada.
+2. **Given** todas as fontes configuradas estão inacessíveis, **When** o desenvolvedor
+   roda a descoberta, **Then** o sistema reporta claramente que nenhum resultado foi
+   encontrado e não fabrica resultados.
 
 ### Edge Cases
 
-- What happens when a query returns matches from both the local catalog and a remote
-  source with the same identifier?
-- How does the system handle a Git source reference that is syntactically invalid?
-- What happens when a remote source's response is malformed or exceeds an expected size?
-- How does the system handle a source that was previously trusted but has since become
-  untrusted or revoked?
+- O que acontece quando uma consulta retorna matches tanto do catálogo local quanto de
+  uma fonte remota com o mesmo identificador?
+- Como o sistema lida com uma referência de fonte Git sintaticamente inválida?
+- O que acontece quando a resposta de uma fonte remota está malformada ou excede um
+  tamanho esperado?
+- Como o sistema lida com uma fonte que era confiável anteriormente mas foi
+  desde então descredenciada ou revogada?
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: System MUST maintain a local inventory of installed skills, MCPs, and
-  tools.
-- **FR-002**: System MUST provide commands to list the local inventory, filterable by
-  capability type (skills, MCPs, tools, or all).
-- **FR-003**: Listing commands MUST accept a free-text query and MUST support a
-  machine-readable (JSON) output mode.
-- **FR-004**: System MUST query configured remote sources to discover capabilities not
-  present in the local inventory, and MUST use canonical identifiers when presenting
-  results for installation.
-- **FR-005**: System MUST provide commands to add a Git source and to list configured
-  Git sources, including each source's reference and trust state.
-- **FR-006**: When a remote result is unavailable, discovery MUST attempt any other
-  available alternative source and MUST clearly report when no result was found, rather
-  than silently returning nothing indistinguishable from "not searched."
-- **FR-007**: Discovery and listing MUST NOT report a successful match when no
-  capability actually satisfies the query.
+- **FR-001**: O sistema DEVE manter um inventário local de skills, MCPs e tools
+  instaladas.
+- **FR-002**: O sistema DEVE disponibilizar comandos para listar o inventário local,
+  filtrável por tipo de capacidade (skills, MCPs, tools, ou todos).
+- **FR-003**: Comandos de listagem DEVEM aceitar uma consulta de texto livre e DEVEM
+  suportar um modo de saída legível por máquina (JSON).
+- **FR-004**: O sistema DEVE consultar fontes remotas configuradas para descobrir
+  capacidades não presentes no inventário local, e DEVE usar identificadores canônicos
+  ao apresentar resultados para instalação.
+- **FR-005**: O sistema DEVE disponibilizar comandos para adicionar uma fonte Git e
+  para listar fontes Git configuradas, incluindo a referência e o estado de confiança
+  de cada fonte.
+- **FR-006**: Quando um resultado remoto estiver indisponível, a descoberta DEVE
+  tentar qualquer outra alternativa disponível e DEVE reportar claramente quando
+  nenhum resultado foi encontrado, em vez de retornar nada silenciosamente de forma
+  indistinguível de "não buscado".
+- **FR-007**: Descoberta e listagem NÃO DEVEM reportar um match bem-sucedido quando
+  nenhuma capacidade de fato satisfaz a consulta.
 
 ### Key Entities
 
-- **Catalog**: The local inventory of known skills, MCPs, and tools available to a
-  project, independent of whether each entry is currently installed.
-- **Source**: A configured Git origin (or other provider) that discovery queries for
-  remote capabilities, carrying a reference and a trust state.
-- **Capability Identifier**: The canonical, source-qualified name used to unambiguously
-  reference a skill, MCP, or tool during discovery and installation (see
+- **Catalog (Catálogo)**: O inventário local de skills, MCPs e tools conhecidas por um
+  projeto, independentemente de cada entrada estar atualmente instalada.
+- **Source (Fonte)**: Uma origem Git configurada (ou outro provedor) que a descoberta
+  consulta em busca de capacidades remotas, carregando uma referência e um estado de
+  confiança.
+- **Capability Identifier (Identificador de Capacidade)**: O nome canônico,
+  qualificado pela fonte, usado para referenciar de forma inequívoca uma skill, MCP,
+  ou tool durante a descoberta e a instalação (ver
   [[003-capability-install-lifecycle]]).
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: Developers can find a known capability by keyword search in under 5
-  seconds on a warm local catalog.
-- **SC-002**: 100% of "no results found" cases are reported distinctly from error
-  conditions and from successful-but-empty results.
-- **SC-003**: A single unreachable remote source never prevents discovery from returning
-  results available from other configured sources.
-- **SC-004**: Every result returned by search or listing carries a canonical identifier
-  that can be used directly for installation without further lookup.
+- **SC-001**: Desenvolvedores conseguem encontrar uma capacidade conhecida por busca de
+  palavra-chave em menos de 5 segundos em um catálogo local aquecido.
+- **SC-002**: 100% dos casos de "nenhum resultado encontrado" são reportados de forma
+  distinta de condições de erro e de resultados vazios bem-sucedidos.
+- **SC-003**: Uma única fonte remota inacessível nunca impede a descoberta de retornar
+  resultados disponíveis de outras fontes configuradas.
+- **SC-004**: Todo resultado retornado por busca ou listagem carrega um identificador
+  canônico que pode ser usado diretamente para instalação sem consulta adicional.
 
 ## Assumptions
 
-- "Remote sources" in this iteration means Git-based sources; other provider types may
-  be added later without changing this spec's intent.
-- Trust state for a source is a simple attribute (e.g. trusted/untrusted) rather than a
-  full permissions model; fine-grained authorization is covered by agent/LLM
-  restrictions in [[003-capability-install-lifecycle]] and [[005-mcp-server-security]].
-- Local catalog queries do not require network access; only remote discovery does.
+- "Fontes remotas" nesta iteração significa fontes baseadas em Git; outros tipos de
+  provedor podem ser adicionados depois sem alterar a intenção deste spec.
+- Estado de confiança para uma fonte é um atributo simples (ex.: confiável/não
+  confiável) em vez de um modelo de permissões completo; autorização granular é
+  coberta pelas restrições de agente/LLM em [[003-capability-install-lifecycle]] e
+  [[005-mcp-server-security]].
+- Consultas ao catálogo local não requerem acesso à rede; apenas a descoberta remota
+  requer.

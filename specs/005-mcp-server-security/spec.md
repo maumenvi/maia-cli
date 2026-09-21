@@ -1,4 +1,4 @@
-# Feature Specification: MCP Server & Runtime Security
+# Feature Specification: Servidor MCP & Segurança de Runtime
 
 **Feature Branch**: `005-mcp-server-security`
 
@@ -6,222 +6,243 @@
 
 **Status**: Draft
 
-**Input**: User description: "Split from .specs/001-maia-cli.spec.md — the MCP server
-and runtime-security scope: discovering/adding/syncing MCPs, exposing installed
-capabilities over stdio with protocol validation, environment isolation for MCP
-processes, secret handling, and destructive-action guardrails."
+**Input**: Descrição do usuário: "Split de .specs/001-maia-cli.spec.md — o escopo de
+servidor MCP e segurança de runtime: descobrir/adicionar/sincronizar MCPs, expor
+capacidades instaladas via stdio com validação de protocolo, isolamento de ambiente
+para processos de MCP, tratamento de segredos, e guardrails para ações destrutivas."
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Discover, add, and sync MCPs (Priority: P1)
+### User Story 1 - Descobrir, adicionar e sincronizar MCPs (Priority: P1)
 
-As a developer, I want to discover available MCPs, add one to my project, and keep it
-synchronized with the project's registry, so my MCP setup stays consistent with what's
-declared.
+Como desenvolvedor, quero descobrir MCPs disponíveis, adicionar um ao meu projeto, e
+mantê-lo sincronizado com o registro do projeto, para que minha configuração de MCP
+permaneça consistente com o que está declarado.
 
-**Why this priority**: This is the entry point for getting any MCP into a working state;
-without it there's nothing for the server (Story 2) to expose.
+**Why this priority**: Este é o ponto de entrada para colocar qualquer MCP em um
+estado funcional; sem ele não há nada para o servidor (User Story 2) expor.
 
-**Independent Test**: Discover an MCP by query, add it, then run sync and verify the
-project registry and the MCP's registered state match.
+**Independent Test**: Descobrir um MCP por consulta, adicioná-lo, e depois rodar
+sync e verificar que o registro do projeto e o estado registrado do MCP
+correspondem.
 
 **Acceptance Scenarios**:
 
-1. **Given** a query matching a known MCP, **When** the developer searches for MCPs,
-   **Then** matching MCPs are returned.
-2. **Given** a discovered MCP, **When** the developer adds it, **Then** it is registered
-   in the project's MCP registry.
-3. **Given** a project with registered MCPs, **When** the developer runs sync, **Then**
-   the registered state and the project's registry are reconciled to match.
+1. **Given** uma consulta que dá match em um MCP conhecido, **When** o desenvolvedor
+   busca por MCPs, **Then** MCPs correspondentes são retornados.
+2. **Given** um MCP descoberto, **When** o desenvolvedor o adiciona, **Then** ele é
+   registrado no registro de MCPs do projeto.
+3. **Given** um projeto com MCPs registrados, **When** o desenvolvedor roda sync,
+   **Then** o estado registrado e o registro do projeto são reconciliados para
+   corresponder.
 
 ---
 
-### User Story 2 - Expose installed capabilities via the MCP server (Priority: P1)
+### User Story 2 - Expor capacidades instaladas via o servidor MCP (Priority: P1)
 
-As a user of an AI agent, I want to query the capabilities Maia has installed through a
-standard MCP server, so I can use them from my agent without duplicated configuration.
+Como usuário de um agente de IA, quero consultar as capacidades que o Maia instalou
+através de um servidor MCP padrão, para poder usá-las a partir do meu agente sem
+configuração duplicada.
 
-**Why this priority**: This is the primary runtime surface of the whole system — the
-point where installed capabilities actually become usable by an agent.
+**Why this priority**: Esta é a superfície primária de runtime de todo o sistema — o
+ponto onde capacidades instaladas de fato se tornam utilizáveis por um agente.
 
-**Independent Test**: Start the MCP server over stdio, send a valid capability-listing
-request, and verify installed capabilities are returned; verify dynamic discovery and
-agent identification behave as configured.
+**Independent Test**: Iniciar o servidor MCP via stdio, enviar uma requisição válida
+de listagem de capacidades, e verificar que capacidades instaladas são retornadas;
+verificar que descoberta dinâmica e identificação de agente se comportam conforme
+configurado.
 
 **Acceptance Scenarios**:
 
-1. **Given** a running MCP server with installed capabilities, **When** a client queries
-   it over stdio, **Then** the installed and authorized capabilities are returned.
-2. **Given** dynamic discovery is enabled, **When** a client queries the server, **Then**
-   capabilities discoverable at query time are included, not just those known at server
-   start.
-3. **Given** a client that identifies itself as a specific agent, **When** it queries the
-   server, **Then** only capabilities authorized for that agent are returned.
+1. **Given** um servidor MCP rodando com capacidades instaladas, **When** um cliente
+   o consulta via stdio, **Then** as capacidades instaladas e autorizadas são
+   retornadas.
+2. **Given** descoberta dinâmica habilitada, **When** um cliente consulta o servidor,
+   **Then** capacidades descobríveis no momento da consulta são incluídas, não apenas
+   as conhecidas na inicialização do servidor.
+3. **Given** um cliente que se identifica como um agente específico, **When** ele
+   consulta o servidor, **Then** apenas capacidades autorizadas para aquele agente
+   são retornadas.
 
 ---
 
-### User Story 3 - Reject invalid or incompatible protocol messages (Priority: P1)
+### User Story 3 - Rejeitar mensagens de protocolo inválidas ou incompatíveis (Priority: P1)
 
-As a maintainer, I want the MCP server to validate JSON-RPC messages structurally and
-reject incompatible protocol revisions explicitly, so malformed or mismatched clients
-fail loudly instead of causing undefined behavior.
+Como mantenedor, quero que o servidor MCP valide mensagens JSON-RPC estruturalmente e
+rejeite revisões de protocolo incompatíveis explicitamente, para que clientes
+malformados ou incompatíveis falhem ruidosamente em vez de causar comportamento
+indefinido.
 
-**Why this priority**: Protocol robustness is a correctness and security baseline for
-any server exposed to external clients; failures here would be silent and hard to
-diagnose.
+**Why this priority**: Robustez de protocolo é uma linha de base de correção e
+segurança para qualquer servidor exposto a clientes externos; falhas aqui seriam
+silenciosas e difíceis de diagnosticar.
 
-**Independent Test**: Send a structurally invalid JSON-RPC message and a message
-declaring an incompatible protocol revision, and verify both are explicitly rejected
-rather than silently ignored or causing a crash.
+**Independent Test**: Enviar uma mensagem JSON-RPC estruturalmente inválida e uma
+mensagem declarando uma revisão de protocolo incompatível, e verificar que ambas são
+rejeitadas explicitamente em vez de silenciosamente ignoradas ou causando um crash.
 
 **Acceptance Scenarios**:
 
-1. **Given** a structurally invalid JSON-RPC message, **When** it is sent to the server,
-   **Then** the server rejects it explicitly with an identifiable error.
-2. **Given** a message declaring an incompatible protocol revision, **When** it is sent
-   to the server, **Then** the server rejects it explicitly rather than attempting a
-   silent reinterpretation.
+1. **Given** uma mensagem JSON-RPC estruturalmente inválida, **When** ela é enviada
+   ao servidor, **Then** o servidor a rejeita explicitamente com um erro
+   identificável.
+2. **Given** uma mensagem declarando uma revisão de protocolo incompatível, **When**
+   ela é enviada ao servidor, **Then** o servidor a rejeita explicitamente em vez de
+   tentar uma reinterpretação silenciosa.
 
 ---
 
-### User Story 4 - Isolate MCP process environment (Priority: P1)
+### User Story 4 - Isolar o ambiente de processo do MCP (Priority: P1)
 
-As a security-conscious maintainer, I want MCP processes to inherit only the
-environment variables they actually need, so a compromised or misbehaving MCP cannot
-read unrelated secrets from the parent environment.
+Como mantenedor preocupado com segurança, quero que processos de MCP herdem apenas as
+variáveis de ambiente que realmente precisam, para que um MCP comprometido ou com mau
+comportamento não consiga ler segredos não relacionados do ambiente pai.
 
-**Why this priority**: A concrete blast-radius control; without it, every MCP process
-would have ambient access to the full parent environment, undermining the whole security
-posture.
+**Why this priority**: Um controle concreto de raio de explosão (blast radius); sem
+ele, todo processo de MCP teria acesso ambiental ao ambiente pai completo,
+minando toda a postura de segurança.
 
-**Independent Test**: Configure an MCP declaring specific required environment
-variables, start it, and verify from within the process (or via a controlled test
-harness) that only the runtime-necessary and explicitly declared variables are present.
+**Independent Test**: Configurar um MCP que declara um conjunto específico de
+variáveis de ambiente obrigatórias, iniciá-lo, e verificar de dentro do processo (ou
+via um harness de teste controlado) que apenas as variáveis necessárias ao runtime e
+as explicitamente declaradas estão presentes.
 
 **Acceptance Scenarios**:
 
-1. **Given** an MCP that declares a specific set of required environment variables,
-   **When** its process starts, **Then** it receives only those variables plus the
-   variables necessary for the runtime itself to function.
-2. **Given** an MCP that declares no environment variables, **When** its process starts,
-   **Then** it does not receive unrelated secrets present in the parent environment.
+1. **Given** um MCP que declara um conjunto específico de variáveis de ambiente
+   obrigatórias, **When** seu processo inicia, **Then** ele recebe apenas aquelas
+   variáveis mais as variáveis necessárias para o próprio runtime funcionar.
+2. **Given** um MCP que não declara nenhuma variável de ambiente, **When** seu
+   processo inicia, **Then** ele não recebe segredos não relacionados presentes no
+   ambiente pai.
 
 ---
 
-### User Story 5 - Protect secrets end-to-end (Priority: P1)
+### User Story 5 - Proteger segredos de ponta a ponta (Priority: P1)
 
-As a maintainer, I want secrets to never appear in the terminal, in version control, or
-in files beyond the variables an MCP explicitly references, so credential exposure risk
-is minimized.
+Como mantenedor, quero que segredos nunca apareçam no terminal, no controle de
+versão, ou em arquivos além das variáveis que um MCP explicitamente referencia, para
+minimizar o risco de exposição de credenciais.
 
-**Why this priority**: Secret handling is a non-negotiable security guarantee that spans
-every other story in this spec; a single leak here undermines all of them.
+**Why this priority**: Tratamento de segredos é uma garantia de segurança
+não-negociável que perpassa toda outra história deste spec; um único vazamento aqui
+mina todas elas.
 
-**Independent Test**: Configure an MCP requiring a credential, install and run it, and
-verify the credential value never appears in command output, logs, or any versioned
-file — only the variable name/reference does.
+**Independent Test**: Configurar um MCP exigindo uma credencial, instalá-lo e
+rodá-lo, e verificar que o valor da credencial nunca aparece na saída do comando, em
+logs, ou em qualquer arquivo versionado — apenas o nome/referência da variável
+aparece.
 
 **Acceptance Scenarios**:
 
-1. **Given** an MCP requiring a credential, **When** it is configured, **Then** the
-   credential value is never printed to the terminal.
-2. **Given** a project with configured MCP credentials, **When** the repository is
-   inspected, **Then** no secret value is present in any versioned file — only variable
-   references.
+1. **Given** um MCP exigindo uma credencial, **When** ele é configurado, **Then** o
+   valor da credencial nunca é impresso no terminal.
+2. **Given** um projeto com credenciais de MCP configuradas, **When** o repositório é
+   inspecionado, **Then** nenhum valor de segredo está presente em nenhum arquivo
+   versionado — apenas referências de variável.
 
 ---
 
-### User Story 6 - Guard destructive actions (Priority: P1)
+### User Story 6 - Proteger ações destrutivas (Priority: P1)
 
-As a maintainer, I want destructive actions and file changes to pass through automated
-guardrails rather than relying on model or user intent alone, so accidental or malicious
-destructive operations are blocked by policy.
+Como mantenedor, quero que ações destrutivas e alterações de arquivo passem por
+guardrails automatizados em vez de depender apenas da intenção do modelo ou do
+usuário, para que operações destrutivas acidentais ou maliciosas sejam bloqueadas
+por política.
 
-**Why this priority**: This is a system-wide safety net; without it, every other
-capability (install, remove, sync) could cause irreversible damage with no independent
-check.
+**Why this priority**: Esta é uma rede de segurança em nível de sistema; sem ela,
+toda outra capacidade (instalar, remover, sync) poderia causar dano irreversível sem
+nenhuma checagem independente.
 
-**Independent Test**: Trigger an action classified as destructive without an
-explicit override, and verify it is blocked by the guardrail rather than completing
-based solely on the requester's stated intent.
+**Independent Test**: Disparar uma ação classificada como destrutiva sem um override
+explícito, e verificar que ela é bloqueada pelo guardrail em vez de ser concluída com
+base apenas na intenção declarada do requisitante.
 
 **Acceptance Scenarios**:
 
-1. **Given** an action classified as destructive, **When** it is attempted without
-   satisfying the configured guardrail (e.g. deny list, pre-commit check), **Then** the
-   action is blocked.
-2. **Given** an action classified as destructive with the required guardrail
-   satisfied, **When** it is attempted, **Then** the action proceeds and is auditable
-   afterward.
+1. **Given** uma ação classificada como destrutiva, **When** ela é tentada sem
+   satisfazer o guardrail configurado (ex.: deny list, pre-commit check), **Then** a
+   ação é bloqueada.
+2. **Given** uma ação classificada como destrutiva com o guardrail obrigatório
+   satisfeito, **When** ela é tentada, **Then** a ação prossegue e é auditável
+   depois.
 
 ### Edge Cases
 
-- What happens when an MCP client disconnects mid-request?
-- How does the server behave when two clients identify as the same agent simultaneously?
-- What happens when a declared required environment variable is missing at MCP process
-  start?
-- How does the system handle a guardrail configuration that itself is malformed?
-- What happens when dynamic discovery finds a capability that is not authorized for the
-  querying agent?
+- O que acontece quando um cliente MCP se desconecta no meio de uma requisição?
+- Como o servidor se comporta quando dois clientes se identificam como o mesmo agente
+  simultaneamente?
+- O que acontece quando uma variável de ambiente obrigatória declarada está ausente
+  no início do processo do MCP?
+- Como o sistema lida com uma configuração de guardrail que está, ela própria,
+  malformada?
+- O que acontece quando a descoberta dinâmica encontra uma capacidade que não está
+  autorizada para o agente que está consultando?
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: System MUST provide commands to discover MCPs, add an MCP to the project,
-  and synchronize registered MCPs with the project's registry.
-- **FR-002**: System MUST provide an MCP server exposing installed capabilities over
-  stdio.
-- **FR-003**: The MCP server MUST support optional dynamic discovery of capabilities at
-  query time and MUST support identifying the querying agent to scope results to that
-  agent's authorizations.
-- **FR-004**: The MCP server MUST structurally validate incoming JSON-RPC messages and
-  MUST explicitly reject messages that are malformed or declare an incompatible protocol
-  revision.
-- **FR-005**: MCP processes MUST inherit only the environment variables required by the
-  runtime itself plus those explicitly declared by that MCP — no ambient inheritance of
-  the full parent environment.
-- **FR-006**: Secrets MUST NOT be displayed in terminal output, MUST NOT be committed to
-  the repository, and MUST NOT be written to any file other than the variables
-  explicitly referenced by installed MCPs.
-- **FR-007**: Destructive actions and file changes MUST pass through automated
-  guardrails (such as a deny list and pre-commit validation) and MUST NOT rely solely on
-  model or user-stated intent.
+- **FR-001**: O sistema DEVE disponibilizar comandos para descobrir MCPs, adicionar
+  um MCP ao projeto, e sincronizar MCPs registrados com o registro do projeto.
+- **FR-002**: O sistema DEVE disponibilizar um servidor MCP que expõe capacidades
+  instaladas via stdio.
+- **FR-003**: O servidor MCP DEVE suportar descoberta dinâmica opcional de
+  capacidades no momento da consulta e DEVE suportar identificação do agente
+  consultante para escopar resultados às autorizações daquele agente.
+- **FR-004**: O servidor MCP DEVE validar estruturalmente mensagens JSON-RPC
+  recebidas e DEVE rejeitar explicitamente mensagens que estão malformadas ou
+  declaram uma revisão de protocolo incompatível.
+- **FR-005**: Processos de MCP DEVEM herdar apenas as variáveis de ambiente exigidas
+  pelo próprio runtime mais aquelas explicitamente declaradas por aquele MCP — sem
+  herança ambiental do ambiente pai completo.
+- **FR-006**: Segredos NÃO DEVEM ser exibidos na saída do terminal, NÃO DEVEM ser
+  commitados no repositório, e NÃO DEVEM ser escritos em nenhum arquivo além das
+  variáveis explicitamente referenciadas por MCPs instalados.
+- **FR-007**: Ações destrutivas e alterações de arquivo DEVEM passar por guardrails
+  automatizados (como uma deny list e validação pre-commit) e NÃO DEVEM depender
+  apenas da intenção declarada pelo modelo ou pelo usuário.
 
 ### Key Entities
 
-- **MCP Server**: The stdio-based process that exposes a project's installed and
-  authorized capabilities to connecting agent clients.
-- **Protocol Message**: A JSON-RPC request/response exchanged between a client and the
-  MCP server, subject to structural and version validation.
-- **Guardrail**: An automated policy check (deny list, pre-commit hook, or equivalent)
-  that must be satisfied before a destructive action is allowed to proceed.
-- **Environment Scope**: The minimal set of environment variables an MCP process is
-  permitted to inherit at start.
+- **MCP Server (Servidor MCP)**: O processo baseado em stdio que expõe as
+  capacidades instaladas e autorizadas de um projeto a clientes de agente que se
+  conectam.
+- **Protocol Message (Mensagem de Protocolo)**: Uma requisição/resposta JSON-RPC
+  trocada entre um cliente e o servidor MCP, sujeita a validação estrutural e de
+  versão.
+- **Guardrail**: Uma checagem de política automatizada (deny list, pre-commit hook,
+  ou equivalente) que deve ser satisfeita antes de uma ação destrutiva ser permitida
+  a prosseguir.
+- **Environment Scope (Escopo de Ambiente)**: O conjunto mínimo de variáveis de
+  ambiente que um processo de MCP tem permissão de herdar ao iniciar.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: 100% of structurally invalid or protocol-incompatible messages sent to the
-  MCP server are rejected with an identifiable error, with zero silent failures.
-- **SC-002**: 100% of MCP processes started by the system receive no environment
-  variable outside the runtime-required set and their own declared set.
-- **SC-003**: Zero secret values appear in terminal output, logs, or versioned files
-  across a full install-and-run cycle involving credentialed MCPs.
-- **SC-004**: 100% of actions classified as destructive are blocked unless their
-  configured guardrail is explicitly satisfied.
+- **SC-001**: 100% das mensagens estruturalmente inválidas ou incompatíveis em
+  protocolo enviadas ao servidor MCP são rejeitadas com um erro identificável, com
+  zero falhas silenciosas.
+- **SC-002**: 100% dos processos de MCP iniciados pelo sistema não recebem nenhuma
+  variável de ambiente fora do conjunto exigido pelo runtime e do seu próprio
+  conjunto declarado.
+- **SC-003**: Zero valores de segredo aparecem na saída do terminal, em logs, ou em
+  arquivos versionados ao longo de um ciclo completo de instalação e execução
+  envolvendo MCPs com credenciais.
+- **SC-004**: 100% das ações classificadas como destrutivas são bloqueadas a menos
+  que seu guardrail configurado seja explicitamente satisfeito.
 
 ## Assumptions
 
-- "Destructive actions" include, at minimum, irreversible file deletions, force
-  overwrites, and any operation explicitly flagged as destructive by a command's own
-  definition.
-- The MCP server's transport for this iteration is stdio only; network-exposed
-  transports (HTTP/SSE) are out of scope.
-- Agent identification at the protocol level is based on information the connecting
-  client voluntarily provides; this spec does not require cryptographic client
-  authentication.
-- This spec assumes MCPs were already installed and registered per
-  [[003-capability-install-lifecycle]]; it covers their discovery/sync and runtime
-  exposure, not their initial installation mechanics.
+- "Ações destrutivas" incluem, no mínimo, exclusões irreversíveis de arquivo,
+  sobrescritas forçadas, e qualquer operação explicitamente sinalizada como
+  destrutiva pela própria definição de um comando.
+- O transporte do servidor MCP nesta iteração é apenas stdio; transportes expostos
+  em rede (HTTP/SSE) estão fora de escopo.
+- Identificação de agente no nível do protocolo é baseada em informação que o
+  cliente conectado fornece voluntariamente; este spec não exige autenticação
+  criptográfica de cliente.
+- Este spec assume que MCPs já foram instalados e registrados conforme
+  [[003-capability-install-lifecycle]]; ele cobre a descoberta/sincronização e a
+  exposição em runtime desses MCPs, não a mecânica de sua instalação inicial.

@@ -1,4 +1,4 @@
-# Feature Specification: Lockfile, Integrity & CI Restore
+# Feature Specification: Lockfile, Integridade & Restauração em CI
 
 **Feature Branch**: `004-lockfile-integrity-ci`
 
@@ -6,170 +6,181 @@
 
 **Status**: Draft
 
-**Input**: User description: "Split from .specs/001-maia-cli.spec.md — the lockfile,
-verification, CI-restore, and context-building scope: generating a reproducible
-lockfile, verifying it against materialized artifacts, restoring an environment
-non-interactively in CI, and building/showing development and LLM context."
+**Input**: Descrição do usuário: "Split de .specs/001-maia-cli.spec.md — o escopo de
+lockfile, verificação, restauração em CI, e construção de contexto: gerar um lockfile
+reproduzível, verificá-lo contra artefatos materializados, restaurar um ambiente
+não-interativamente em CI, e construir/exibir contexto de desenvolvimento e de LLM."
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Generate or update the lockfile (Priority: P1)
+### User Story 1 - Gerar ou atualizar o lockfile (Priority: P1)
 
-As a maintainer, I want to generate or update a lockfile capturing exact versions,
-sources, dependencies, and authorizations, so the current installation state can be
-reproduced later.
+Como mantenedor, quero gerar ou atualizar um lockfile que capture versões exatas,
+fontes, dependências e autorizações, para que o estado de instalação atual possa ser
+reproduzido depois.
 
-**Why this priority**: The lockfile is the artifact every other story in this spec
-depends on; without it there is nothing to verify or restore.
+**Why this priority**: O lockfile é o artefato do qual toda outra história neste spec
+depende; sem ele não há nada para verificar ou restaurar.
 
-**Independent Test**: With capabilities installed, run the lock command and verify the
-resulting lockfile records version, source, dependency, and authorization metadata for
-each installed capability.
+**Independent Test**: Com capacidades instaladas, rodar o comando de lock e verificar
+que o lockfile resultante registra metadados de versão, fonte, dependência e
+autorização para cada capacidade instalada.
 
 **Acceptance Scenarios**:
 
-1. **Given** a project with installed capabilities, **When** the maintainer runs the lock
-   command, **Then** the lockfile is created or updated with version, source, dependency,
-   and authorization metadata sufficient to reproduce the installation.
-2. **Given** an existing lockfile and no capability changes since it was generated,
-   **When** the lock command is re-run, **Then** the lockfile content is unchanged.
+1. **Given** um projeto com capacidades instaladas, **When** o mantenedor roda o
+   comando de lock, **Then** o lockfile é criado ou atualizado com metadados de
+   versão, fonte, dependência e autorização suficientes para reproduzir a instalação.
+2. **Given** um lockfile existente e nenhuma mudança de capacidade desde que foi
+   gerado, **When** o comando de lock é reexecutado, **Then** o conteúdo do lockfile
+   permanece inalterado.
 
 ---
 
-### User Story 2 - Verify lockfile integrity (Priority: P1)
+### User Story 2 - Verificar a integridade do lockfile (Priority: P1)
 
-As a maintainer, I want to verify that the lockfile matches the materialized artifacts
-on disk, so I can trust an installation before relying on it.
+Como mantenedor, quero verificar que o lockfile corresponde aos artefatos
+materializados em disco, para poder confiar em uma instalação antes de depender dela.
 
-**Why this priority**: Verification is what makes the lockfile trustworthy rather than
-just descriptive; it's the direct safety check maintainers and CI depend on.
+**Why this priority**: Verificação é o que torna o lockfile confiável em vez de
+apenas descritivo; é a checagem de segurança direta na qual mantenedores e CI
+dependem.
 
-**Independent Test**: Modify a materialized artifact so it diverges from the lockfile,
-run verify, and confirm it fails explicitly; run verify with no lockfile present and
-confirm it fails with guidance to generate one.
+**Independent Test**: Modificar um artefato materializado para que ele divirja do
+lockfile, rodar verify, e confirmar que ele falha explicitamente; rodar verify sem
+nenhum lockfile presente e confirmar que ele falha com orientação para gerar um.
 
 **Acceptance Scenarios**:
 
-1. **Given** a lockfile that matches all materialized artifacts, **When** the maintainer
-   runs verify, **Then** verification succeeds.
-2. **Given** a lockfile and a materialized artifact that has been modified or is
-   missing, **When** the maintainer runs verify, **Then** verification fails and
-   identifies the divergence or missing artifact explicitly.
-3. **Given** a project with no lockfile, **When** the maintainer runs verify, **Then**
-   the system fails and instructs the maintainer to generate a lockfile first.
+1. **Given** um lockfile que corresponde a todos os artefatos materializados, **When**
+   o mantenedor roda verify, **Then** a verificação é bem-sucedida.
+2. **Given** um lockfile e um artefato materializado que foi modificado ou está
+   ausente, **When** o mantenedor roda verify, **Then** a verificação falha e
+   identifica a divergência ou o artefato ausente explicitamente.
+3. **Given** um projeto sem lockfile, **When** o mantenedor roda verify, **Then** o
+   sistema falha e instrui o mantenedor a gerar um lockfile primeiro.
 
 ---
 
-### User Story 3 - Restore an environment in CI (Priority: P1)
+### User Story 3 - Restaurar um ambiente em CI (Priority: P1)
 
-As a CI operator, I want to restore a project's full capability installation from the
-lockfile non-interactively, so pipelines can validate and reproduce the environment
-without manual steps.
+Como operador de CI, quero restaurar a instalação completa de capacidades de um
+projeto a partir do lockfile não-interativamente, para que pipelines possam validar e
+reproduzir o ambiente sem passos manuais.
 
-**Why this priority**: This is the primary reason the lockfile exists in an automated
-context — CI reproducibility is a first-class use case, not an afterthought.
+**Why this priority**: Esta é a razão primária da existência do lockfile em um
+contexto automatizado — reprodutibilidade em CI é um caso de uso de primeira classe,
+não uma reflexão tardia.
 
-**Independent Test**: In a clean checkout with only a valid lockfile present, run the CI
-command and verify metadata/hashes are validated before any artifact is materialized,
-the environment is fully restored, and agents are synchronized, all without prompts.
+**Independent Test**: Em um checkout limpo com apenas um lockfile válido presente,
+rodar o comando de ci e verificar que metadados/hashes são validados antes de
+qualquer artefato ser materializado, o ambiente é totalmente restaurado, e agentes são
+sincronizados, tudo sem prompts.
 
 **Acceptance Scenarios**:
 
-1. **Given** a valid lockfile, **When** the CI command runs, **Then** metadata and hashes
-   are validated before any artifact is materialized.
-2. **Given** a lockfile with invalid metadata or hashes, **When** the CI command runs,
-   **Then** it fails before materializing any files.
-3. **Given** a valid lockfile, **When** the CI command completes successfully, **Then**
-   the environment is restored and all configured agents are synchronized, with no
-   interactive prompts at any point.
+1. **Given** um lockfile válido, **When** o comando de ci roda, **Then** metadados e
+   hashes são validados antes de qualquer artefato ser materializado.
+2. **Given** um lockfile com metadados ou hashes inválidos, **When** o comando de ci
+   roda, **Then** ele falha antes de materializar qualquer arquivo.
+3. **Given** um lockfile válido, **When** o comando de ci é concluído com sucesso,
+   **Then** o ambiente é restaurado e todos os agentes configurados são
+   sincronizados, sem nenhum prompt interativo em nenhum momento.
 
 ---
 
-### User Story 4 - Build and inspect context (Priority: P3)
+### User Story 4 - Construir e inspecionar contexto (Priority: P3)
 
-As a developer, I want to build and view development and LLM context derived from the
-project's current capability state, so I can inspect what an agent would see without
-running the agent itself.
+Como desenvolvedor, quero construir e visualizar contexto de desenvolvimento e de LLM
+derivado do estado atual de capacidades do projeto, para inspecionar o que um agente
+veria sem rodar o agente propriamente dito.
 
-**Why this priority**: A diagnostic/inspection convenience layered on top of a working
-lockfile and install system; useful but not required for the core reproducibility
-guarantee.
+**Why this priority**: Uma conveniência de diagnóstico/inspeção construída sobre um
+lockfile e um sistema de instalação funcionais; útil mas não obrigatória para a
+garantia central de reprodutibilidade.
 
-**Independent Test**: Run the context-build command, then the context-show command, and
-verify the shown context reflects the currently installed and authorized capabilities.
+**Independent Test**: Rodar o comando de construção de contexto, depois o comando de
+exibição de contexto, e verificar que o contexto exibido reflete as capacidades
+atualmente instaladas e autorizadas.
 
 **Acceptance Scenarios**:
 
-1. **Given** installed capabilities, **When** the developer builds context, **Then**
-   development and LLM context artifacts are generated.
-2. **Given** built context, **When** the developer requests to show it, **Then** the
-   requested context is displayed accurately.
+1. **Given** capacidades instaladas, **When** o desenvolvedor constrói o contexto,
+   **Then** artefatos de contexto de desenvolvimento e de LLM são gerados.
+2. **Given** contexto construído, **When** o desenvolvedor solicita exibi-lo, **Then**
+   o contexto solicitado é exibido com precisão.
 
 ### Edge Cases
 
-- What happens when verify is run against a lockfile generated by an incompatible
-  (older/newer) schema version?
-- How does the system handle a lockfile whose recorded source is no longer reachable
-  during a CI restore?
-- What happens when two entries in the lockfile declare conflicting dependency
-  requirements?
-- How does context-show behave when context has never been built?
-- What happens when a CI restore is interrupted partway through materialization?
+- O que acontece quando verify é rodado contra um lockfile gerado por uma versão de
+  schema incompatível (mais antiga/mais nova)?
+- Como o sistema lida com um lockfile cuja fonte registrada não está mais acessível
+  durante uma restauração em CI?
+- O que acontece quando duas entradas no lockfile declaram requisitos de dependência
+  conflitantes?
+- Como o context-show se comporta quando o contexto nunca foi construído?
+- O que acontece quando uma restauração em CI é interrompida no meio da
+  materialização?
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: System MUST provide a lock command that generates or updates a lockfile
-  containing versions, sources, dependencies, authorizations, and metadata sufficient to
-  reproduce the current installation.
-- **FR-002**: System MUST provide a verify command that validates the lockfile against
-  materialized artifacts and MUST fail explicitly when a divergence or missing artifact
-  is detected.
-- **FR-003**: Running verify with no lockfile present MUST fail and MUST instruct the
-  user to run the lock command.
-- **FR-004**: System MUST provide a non-interactive CI command that validates lockfile
-  metadata and hashes, fails before materializing any artifact if validation fails,
-  restores the environment from the lockfile on success, and synchronizes all configured
-  agents.
-- **FR-005**: The CI restore flow MUST require no interactive input at any step.
-- **FR-006**: System MUST provide commands to build development/LLM context artifacts
-  and to display previously built context.
-- **FR-007**: Lockfile generation, verification, and CI restore MUST use consistent
-  metadata so that a lockfile produced by the lock command is always a valid input to
-  verify and to CI restore.
+- **FR-001**: O sistema DEVE disponibilizar um comando de lock que gera ou atualiza
+  um lockfile contendo versões, fontes, dependências, autorizações, e metadados
+  suficientes para reproduzir a instalação atual.
+- **FR-002**: O sistema DEVE disponibilizar um comando de verify que valida o
+  lockfile contra os artefatos materializados e DEVE falhar explicitamente quando uma
+  divergência ou artefato ausente for detectado.
+- **FR-003**: Rodar verify sem nenhum lockfile presente DEVE falhar e DEVE instruir o
+  usuário a rodar o comando de lock.
+- **FR-004**: O sistema DEVE disponibilizar um comando de ci não-interativo que
+  valida metadados e hashes do lockfile, falha antes de materializar qualquer
+  artefato se a validação falhar, restaura o ambiente a partir do lockfile em caso de
+  sucesso, e sincroniza todos os agentes configurados.
+- **FR-005**: O fluxo de restauração em CI NÃO DEVE exigir nenhuma entrada interativa
+  em nenhum passo.
+- **FR-006**: O sistema DEVE disponibilizar comandos para construir artefatos de
+  contexto de desenvolvimento/LLM e para exibir contexto previamente construído.
+- **FR-007**: Geração de lockfile, verificação, e restauração em CI DEVEM usar
+  metadados consistentes de forma que um lockfile produzido pelo comando de lock seja
+  sempre uma entrada válida para o verify e para a restauração em CI.
 
 ### Key Entities
 
-- **Lockfile**: The reproducible record of exact capability versions, sources,
-  dependencies, and authorizations (shared entity, owned conceptually by
-  [[001-project-init-agents]]'s manifest but generated/verified here).
-- **Verification Result**: The outcome of comparing a lockfile against materialized
-  artifacts, including any identified divergence or missing file.
-- **Context Artifact**: A generated snapshot of development or LLM-facing context
-  derived from the current capability and authorization state.
+- **Lockfile**: O registro reproduzível de versões exatas de capacidades, fontes,
+  dependências, e autorizações (entidade compartilhada, pertencente
+  conceitualmente ao manifesto em [[001-project-init-agents]] mas gerada/verificada
+  aqui).
+- **Verification Result (Resultado de Verificação)**: O resultado de comparar um
+  lockfile contra artefatos materializados, incluindo qualquer divergência ou
+  arquivo ausente identificado.
+- **Context Artifact (Artefato de Contexto)**: Um snapshot gerado de contexto de
+  desenvolvimento ou voltado a LLM derivado do estado atual de capacidades e
+  autorizações.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: A CI pipeline can restore a full project environment from a lockfile alone,
-  with zero interactive prompts, in a single command invocation.
-- **SC-002**: 100% of verify runs against a tampered or incomplete installation fail
-  before the developer takes any further action, with the specific divergence
-  identified.
-- **SC-003**: Lockfile generation is deterministic: re-running lock with no underlying
-  changes produces a byte-for-byte identical lockfile.
-- **SC-004**: CI restore never materializes a single artifact when lockfile metadata or
-  hash validation fails.
+- **SC-001**: Um pipeline de CI consegue restaurar um ambiente de projeto completo a
+  partir de um lockfile sozinho, com zero prompts interativos, em uma única
+  invocação de comando.
+- **SC-002**: 100% das execuções de verify contra uma instalação adulterada ou
+  incompleta falham antes de o desenvolvedor tomar qualquer ação adicional, com a
+  divergência específica identificada.
+- **SC-003**: A geração de lockfile é determinística: reexecutar o lock sem mudanças
+  subjacentes produz um lockfile byte-a-byte idêntico.
+- **SC-004**: A restauração em CI nunca materializa um único artefato sequer quando a
+  validação de metadados ou hash do lockfile falha.
 
 ## Assumptions
 
-- "Metadata and hashes" validation refers to integrity checks (e.g. content hashes)
-  recorded per capability in the lockfile, not cryptographic signing of the lockfile
-  itself.
-- Context artifacts are derived, regenerable outputs and are not treated as a source of
-  truth alongside the manifest/lockfile.
-- CI restore assumes network access to configured sources is available when a
-  capability is not already cached locally; fully offline CI restore is out of scope for
-  this iteration.
+- Validação de "metadados e hashes" se refere a checagens de integridade (ex.: hashes
+  de conteúdo) registradas por capacidade no lockfile, não a assinatura criptográfica
+  do próprio lockfile.
+- Artefatos de contexto são saídas derivadas e regeneráveis e não são tratados como
+  fonte da verdade ao lado do manifesto/lockfile.
+- A restauração em CI assume que acesso à rede às fontes configuradas está disponível
+  quando uma capacidade ainda não está em cache local; restauração em CI totalmente
+  offline está fora de escopo para esta iteração.

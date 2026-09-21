@@ -1,36 +1,36 @@
-# Specification Quality Checklist: Capability Catalog & Discovery
+# Specification Quality Checklist: Catálogo de Capacidades & Descoberta
 
-**Purpose**: Validate specification completeness and quality before proceeding to planning
+**Purpose**: Validar completude e qualidade da especificação antes de seguir para o planejamento
 **Created**: 2026-09-21
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 
-- [x] No implementation details (languages, frameworks, APIs)
-- [x] Focused on user value and business needs
-- [x] Written for non-technical stakeholders
-- [x] All mandatory sections completed
+- [x] Sem detalhes de implementação (linguagens, frameworks, APIs)
+- [x] Focado em valor para o usuário e necessidades de negócio
+- [x] Escrito para stakeholders não-técnicos
+- [x] Todas as seções obrigatórias preenchidas
 
 ## Requirement Completeness
 
-- [x] No [NEEDS CLARIFICATION] markers remain
-- [x] Requirements are testable and unambiguous
-- [x] Success criteria are measurable
-- [x] Success criteria are technology-agnostic (no implementation details)
-- [x] All acceptance scenarios are defined
-- [x] Edge cases are identified
-- [x] Scope is clearly bounded
-- [x] Dependencies and assumptions identified
+- [x] Nenhum marcador [NEEDS CLARIFICATION] restante
+- [x] Requisitos são testáveis e não ambíguos
+- [x] Critérios de sucesso são mensuráveis
+- [x] Critérios de sucesso são agnósticos de tecnologia (sem detalhes de implementação)
+- [x] Todos os cenários de aceite estão definidos
+- [x] Edge cases foram identificados
+- [x] Escopo está claramente delimitado
+- [x] Dependências e suposições foram identificadas
 
 ## Feature Readiness
 
-- [x] All functional requirements have clear acceptance criteria
-- [x] User scenarios cover primary flows
-- [x] Feature meets measurable outcomes defined in Success Criteria
-- [x] No implementation details leak into specification
+- [x] Todos os requisitos funcionais têm critérios de aceite claros
+- [x] Cenários de usuário cobrem os fluxos primários
+- [x] A feature atende aos resultados mensuráveis definidos em Success Criteria
+- [x] Nenhum detalhe de implementação vaza para a especificação
 
 ## Notes
 
-- All items pass. Spec was migrated and split from `.specs/001-maia-cli.spec.md` as
-  part of the project reorganization; ready for `/speckit-clarify` (optional) or
+- Todos os itens passam. Spec migrado e desmembrado de `.specs/001-maia-cli.spec.md`
+  como parte da reorganização do projeto; pronto para `/speckit-clarify` (opcional) ou
   `/speckit-plan`.

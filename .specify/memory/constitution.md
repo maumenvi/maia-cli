@@ -22,6 +22,9 @@ Templates requiring follow-up: none — dependent templates/commands read
 
 # Maia CLI Constitution
 
+## Language
+Sempre em portugues BR.
+
 ## Core Principles
 
 ### I. Test-First (NON-NEGOTIABLE)
