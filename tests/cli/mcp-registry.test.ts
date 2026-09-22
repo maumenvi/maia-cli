@@ -198,7 +198,6 @@ describe('MCP Registry provider', () => {
     ensureLockMcpEnvFileEntries(store, {
       name: 'fixture',
       lockfileVersion: 1,
-      generatedAt: new Date().toISOString(),
       sources: {},
       packages: {},
     });

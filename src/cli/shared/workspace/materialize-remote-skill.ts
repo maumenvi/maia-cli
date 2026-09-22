@@ -14,7 +14,18 @@ export async function materializeRemoteSkill(
   source: CatalogSource,
   targetRelativePath = path.posix.join('skills', name, 'SKILL.md'),
 ): Promise<string> {
-  const markdown = await fetchRemoteSkillMarkdown(source, name);
+  // A source that cannot be reached and a source that answers but no longer
+  // carries the skill are different failures: the first means "retry the
+  // pipeline", the second means "fix the configuration" (FR-011). No retry
+  // is attempted here.
+  let markdown: string | null;
+  try {
+    markdown = await fetchRemoteSkillMarkdown(source, name);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(`Source ${source.url} is unreachable while fetching skill "${name}": ${reason}`);
+  }
+
   if (markdown === null) {
     throw new Error(`Skill "${name}" was not found in ${source.url}`);
   }

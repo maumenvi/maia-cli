@@ -59,7 +59,6 @@ export function buildLockFromManifest(manifest: SourcesManifest, workspaceRoot =
   return {
     name: manifest.name,
     lockfileVersion: 1,
-    generatedAt: new Date().toISOString(),
     sources,
     packages,
   };

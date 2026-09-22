@@ -144,7 +144,12 @@ describe('AgentCatalogStore', () => {
 
       writeFileSync(skillPath, 'export const skill = { execute: async () => ({ ok: false }) };\n', 'utf8');
 
-      assert.throws(() => store.verifyLock(lock), /Artifact hash mismatch for skill:repo_overview/);
+      // verifyLock now accumulates problems instead of throwing, so a single
+      // run can report everything (FR-002).
+      const result = store.verifyLock(lock);
+      assert.equal(result.ok, false);
+      assert.ok(result.ok === false && result.problems.some((problem) =>
+        problem.packageId === 'skill:repo_overview' && problem.kind === 'hash-mismatch'));
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
@@ -170,7 +175,10 @@ describe('AgentCatalogStore', () => {
       const lock = store.buildLock();
       rmSync(skillPath);
 
-      assert.throws(() => store.verifyLock(lock), /Materialized package missing for skill:repo_overview/);
+      const result = store.verifyLock(lock);
+      assert.equal(result.ok, false);
+      assert.ok(result.ok === false && result.problems.some((problem) =>
+        problem.packageId === 'skill:repo_overview' && problem.kind === 'missing-artifact'));
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }

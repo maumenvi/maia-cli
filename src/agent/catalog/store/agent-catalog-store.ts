@@ -10,6 +10,8 @@ import { buildCatalogContexts } from '../context/build.ts';
 import { syncVsCodeMcpConfig } from '../context/sync-mcp/sync-vs-code-mcp-config.ts';
 import { buildLockFromManifest } from '../lock/build.ts';
 import type { VerifySourceLockOptions } from '../lock/verify-source-lock-options.ts';
+import type { LockVerificationProblem } from '../lock/verify/lock-verification-problem.ts';
+import type { LockVerificationResult } from '../lock/verify/lock-verification-result.ts';
 import { verifySourceLockMetadata } from '../lock/verify/verify-source-lock-metadata.ts';
 import { verifySourceLock } from '../lock/verify/verify-source-lock.ts';
 import { createDefaultManifest } from '../manifest/defaults.ts';
@@ -91,9 +93,14 @@ export class AgentCatalogStore {
   }
 
   /** Performs the save lock operation. */
-  saveLock(lock: SourceLock): void {
+  saveLock(lock: SourceLock): boolean {
+    const serialized = `${JSON.stringify(lock, null, 2)}\n`;
+    if (existsSync(this.paths.lock) && readFileSync(this.paths.lock, 'utf8') === serialized) {
+      return false;
+    }
     mkdirSync(path.dirname(this.paths.lock), { recursive: true });
-    writeFileAtomic(this.paths.lock, `${JSON.stringify(lock, null, 2)}\n`);
+    writeFileAtomic(this.paths.lock, serialized);
+    return true;
   }
 
   /** Performs the add source operation. */
@@ -155,19 +162,23 @@ export class AgentCatalogStore {
     return lock;
   }
 
-  /** Verifies lock metadata and artifact hashes without changing catalog state. */
+  /**
+   * Verifies lock metadata and artifact hashes without changing catalog
+   * state. Returns the full problem list rather than throwing, so the CLI
+   * boundary decides how to report it (FR-002).
+   */
   verifyLock(
     lock: SourceLock | null = this.loadLock(),
     options: VerifySourceLockOptions = {},
-  ): { ok: true } {
+  ): LockVerificationResult {
     if (!lock) {
       throw new Error('maia.lock.json not found. Run "maia lock" first.');
     }
     return verifySourceLock(lock, this.paths.stateDir, options);
   }
 
-  /** Performs the verify lock metadata operation. */
-  verifyLockMetadata(lock: SourceLock | null = this.loadLock()): { ok: true } {
+  /** Returns every metadata-level problem in the lock, without touching disk. */
+  verifyLockMetadata(lock: SourceLock | null = this.loadLock()): LockVerificationProblem[] {
     if (!lock) {
       throw new Error('maia.lock.json not found. Run "maia lock" first.');
     }
