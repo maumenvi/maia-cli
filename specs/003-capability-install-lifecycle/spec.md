@@ -11,6 +11,31 @@ instalação e remoção: instalar skills, MCPs e tools com opções de versão/
 de LLM, materializá-las nos locais fallback e nativos de agente, remover capacidades, e
 restaurar o conjunto completo a partir do lockfile."
 
+## Clarifications
+
+### Session 2026-09-22
+
+- Q: Quando uma instalação ou remoção é interrompida no meio do caminho, o
+  sistema precisa garantir rollback/journal para nunca deixar estado parcial,
+  ou uma reexecução subsequente pode auto-curar o estado? → A: Exigir
+  rollback explícito — nenhuma operação de install/remove pode deixar estado
+  parcial, mesmo em caso de crash.
+- Q: Quando um MCP declara um transporte que o formato nativo de um agente
+  configurado não consegue representar, o que o sistema deve fazer? → B:
+  Pular a sincronização daquele agente específico com um aviso explícito,
+  mas instalar com sucesso para os demais agentes/catálogo.
+- Q: "Restaurar do lockfile" (FR-007) deve restaurar exatamente o
+  `maia.lock.json` em disco, ou regenerá-lo a partir do manifesto antes de
+  restaurar? → B: Sempre regenerar o lockfile a partir do manifesto antes de
+  restaurar — o manifesto é a única fonte de verdade; o lockfile é sempre
+  derivado dele.
+- Q: O modelo de dados atual não tem grafo de dependências entre
+  capacidades — o Edge Case de "versão em conflito com uma já instalada
+  exigida por outra coisa" deve ser removido ou reinterpretado? → B:
+  Reinterpretado como "reinstalar uma capacidade já instalada com uma
+  versão diferente da anterior" — o sistema sobrescreve explicitamente, sem
+  tratamento especial de conflito além do overwrite já existente.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Instalar uma capacidade (Priority: P1)
@@ -142,7 +167,8 @@ desaparece do manifesto, do estado derivado do lockfile, e dos locais materializ
 ### User Story 6 - Restaurar capacidades a partir do lockfile (Priority: P1)
 
 Como operador, quero que rodar install sem nenhuma capacidade específica nomeada
-restaure tudo registrado no lockfile, para poder reproduzir um ambiente sem
+restaure tudo que o manifesto declara (via regeneração determinística do lockfile
+a partir dele — ver Clarifications), para poder reproduzir um ambiente sem
 reinstalar manualmente cada item.
 
 **Why this priority**: Esta é a garantia de reprodutibilidade que torna o lockfile
@@ -165,14 +191,22 @@ lockfile é restaurada e todo agente configurado é ressincronizado.
 
 - O que acontece quando uma instalação é requisitada para um identificador de
   capacidade que não existe em nenhuma fonte configurada?
-- Como o sistema lida com a instalação de uma capacidade cuja versão declarada entra
-  em conflito com uma versão já instalada exigida por outra coisa?
+- Quando uma capacidade já instalada é reinstalada com uma versão diferente da
+  anterior, o sistema sobrescreve a entrada existente com a nova versão
+  explicitamente solicitada — não há tratamento especial de conflito além
+  dessa sobrescrita, pois o modelo de dados não rastreia dependências entre
+  capacidades.
 - O que acontece quando a remoção é requisitada para uma capacidade que não está
   instalada?
-- Como o sistema lida com uma instalação parcialmente concluída (ex.: processo
-  interrompido durante a materialização)?
-- O que acontece quando o transporte declarado de um MCP não é suportado por um
-  determinado agente?
+- Quando uma instalação é interrompida durante a materialização (ex.: processo
+  morto entre escrever o manifesto e reconstruir o lockfile), o sistema deve
+  reverter qualquer alteração parcial já aplicada, de forma que nenhum estado
+  mutuamente inconsistente (manifesto sem lockfile correspondente, artefato
+  sem entrada de manifesto, etc.) persista após a interrupção.
+- Quando o transporte declarado de um MCP não é suportado pelo formato nativo
+  de um agente configurado, a sincronização daquele agente específico é
+  pulada com um aviso explícito, mas a instalação prossegue com sucesso para
+  os demais agentes configurados e para o catálogo local.
 
 ## Requirements *(mandatory)*
 
@@ -190,7 +224,11 @@ lockfile é restaurada e todo agente configurado é ressincronizado.
 - **FR-004**: MCPs instalados DEVEM respeitar o transporte e a configuração
   declarados pela entrada do catálogo, DEVEM registrar quaisquer variáveis de
   credencial obrigatórias sem persistir ou exibir seus valores durante a instalação,
-  e DEVEM sincronizar a configuração nativa de cada agente configurado.
+  e DEVEM sincronizar a configuração nativa de cada agente configurado. Quando o
+  transporte declarado não é representável pelo formato nativo de um agente
+  configurado, o sistema DEVE pular a sincronização daquele agente específico com
+  um aviso explícito, sem impedir a instalação de ser concluída com sucesso para
+  os demais agentes e para o catálogo local.
 - **FR-005**: Tools DEVEM ser instaláveis apenas a partir do registro local; uma
   requisição de instalação especificando uma fonte remota para uma tool DEVE ser
   rejeitada com uma mensagem explicativa clara.
@@ -198,12 +236,23 @@ lockfile é restaurada e todo agente configurado é ressincronizado.
   de manifesto e o estado de instalação derivado de uma capacidade, e DEVE atualizar
   todos os locais onde aquela capacidade foi materializada.
 - **FR-007**: Rodar o comando de instalação sem nenhuma capacidade especificada DEVE
-  restaurar todas as capacidades registradas no lockfile e DEVE sincronizar todos os
-  agentes configurados depois.
+  primeiro regenerar o lockfile a partir do manifesto (a única fonte de verdade),
+  DEVE restaurar todas as capacidades resultantes dessa regeneração, e DEVE
+  sincronizar todos os agentes configurados depois. O lockfile em disco nunca é
+  tratado como fonte de verdade independente do manifesto.
 - **FR-008**: Operações de instalação e remoção DEVEM deixar manifesto, estado
   derivado do lockfile, artefatos materializados, e configurações de agente
   mutuamente consistentes — nenhuma operação pode atualizar apenas um subconjunto
-  desses.
+  desses. Quando uma operação é interrompida antes de concluir todas as
+  atualizações, o sistema DEVE reverter (rollback) qualquer alteração parcial já
+  aplicada, de forma que nenhuma operação interrompida deixe manifesto, lockfile,
+  artefatos, ou configuração de agente em um estado mutuamente inconsistente —
+  não é aceitável depender apenas de uma reexecução futura para restaurar a
+  consistência.
+- **FR-009**: Reinstalar uma capacidade já instalada com uma versão diferente da
+  anterior DEVE sobrescrever explicitamente a entrada existente com a nova versão
+  solicitada; o sistema não rastreia dependências entre capacidades e não precisa
+  detectar ou resolver conflitos além dessa sobrescrita.
 
 ### Key Entities
 
@@ -234,6 +283,11 @@ lockfile é restaurada e todo agente configurado é ressincronizado.
   sincronizar com os agentes configurados.
 - **SC-004**: Remover uma capacidade deixa zero arquivos materializados residuais em
   qualquer local previamente populado.
+- **SC-005**: Uma operação de instalação ou remoção interrompida a qualquer momento
+  nunca deixa o projeto em um estado onde manifesto, lockfile, artefatos
+  materializados, e configuração de agente estejam mutuamente inconsistentes —
+  100% das interrupções resultam em rollback completo ou conclusão completa, nunca
+  um meio-termo observável.
 
 ## Assumptions
 

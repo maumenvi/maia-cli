@@ -31,6 +31,9 @@
 
 ## Notes
 
-- Todos os itens passam. Spec migrado e desmembrado de `.specs/001-maia-cli.spec.md`
-  como parte da reorganização do projeto; pronto para `/speckit-clarify` (opcional) ou
-  `/speckit-plan`.
+- Todos os itens passam. Spec revalidado após a sessão de clarificação de
+  2026-09-22 (4 perguntas respondidas: rollback explícito em FR-008,
+  transporte MCP incompatível pula só o agente afetado, lockfile sempre
+  derivado do manifesto em FR-007, reinterpretação do Edge Case de conflito
+  de versão como reinstalação com sobrescrita explícita — novo FR-009).
+  Pronto para `/speckit-plan`.
