@@ -31,6 +31,16 @@
 
 ## Notes
 
-- Todos os itens passam. Spec migrado e desmembrado de `.specs/001-maia-cli.spec.md`
-  como parte da reorganização do projeto; pronto para `/speckit-clarify` (opcional) ou
-  `/speckit-plan`.
+- Todos os itens passam. Spec revalidado após duas sessões de clarificação em
+  2026-09-22, 10 perguntas no total.
+- Primeira sessão (5): CI usa o lockfile em disco mas falha se desatualizado em
+  relação ao manifesto, remoção de `generatedAt` para tornar o lockfile
+  determinístico, remoção do edge case de conflito de dependências, rollback
+  estendido à restauração em CI, e gate de versão de schema do lockfile —
+  novos FR-008, FR-009, FR-010 e SC-005.
+- Segunda sessão (5): verify recusa pacote sem hash registrado, `context show`
+  falha com orientação em vez de construir automaticamente, fonte inalcançável
+  distinta de capacidade ausente, verify reporta todos os problemas de uma vez,
+  e lock não reescreve o arquivo quando o conteúdo é idêntico — novo FR-011 e
+  reforços em FR-001, FR-002, FR-006 e SC-002.
+- Pronto para `/speckit-plan`.
