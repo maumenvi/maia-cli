@@ -28,7 +28,7 @@ export async function installCatalogResult(
 
   if (result.kind === 'mcp' && result.install.type === 'mcp') {
     await configureMcpCredentialsFromResult(store, result);
-    installMcp(
+    await installMcp(
       store,
       result.name,
       resolved.sourceAlias,

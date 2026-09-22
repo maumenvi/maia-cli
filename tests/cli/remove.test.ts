@@ -1,0 +1,162 @@
+import assert from 'node:assert/strict';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { describe, it } from 'node:test';
+
+import { AgentCatalogStore } from '../../src/agent/catalog/store/agent-catalog-store.ts';
+import { installCommand } from '../../src/cli/commands/install/install-command.ts';
+import { removeCommand } from '../../src/cli/commands/remove.ts';
+
+const COMMIT = '0123456789abcdef0123456789abcdef01234567';
+const SKILL_MARKDOWN = `---
+name: find-skills
+description: Finds external skills.
+---
+
+# Find Skills
+`;
+
+describe('CLI remove', () => {
+  it('removes the materialized tool artifact and its now-empty fallback directory', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-remove-tool-'));
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveManifest(store.loadManifest());
+
+      await installCommand(['tool', 'read_file'], { store });
+      const lock = store.loadLock();
+      const toolPath = lock?.packages['tool:read_file']?.path;
+      assert.ok(toolPath);
+      assert.ok(existsSync(path.resolve(tempDir, '.maia', toolPath)));
+
+      await removeCommand(['tool', 'read_file'], { store });
+
+      assert.equal(existsSync(path.resolve(tempDir, '.maia', toolPath)), false);
+      assert.equal(existsSync(path.resolve(tempDir, '.maia', 'tools')), false);
+      assert.equal(store.loadManifest().tools['read_file'], undefined);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('removing a tool that was never installed does not throw', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-remove-tool-missing-'));
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveManifest(store.loadManifest());
+
+      await assert.doesNotReject(() => removeCommand(['tool', 'never-installed'], { store }));
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('removing an MCP resyncs every configured agent, not just VS Code', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-remove-mcp-multi-agent-'));
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveManifest(store.loadManifest());
+      store.saveSelectedAgents(['claude', 'copilot']);
+
+      await installCommand(['mcp', 'filesystem', '--transport', 'npx', '--package', '@modelcontextprotocol/server-filesystem'], { store });
+
+      const claudeConfig = path.resolve(tempDir, '.mcp.json');
+      const vscodeConfig = path.resolve(tempDir, '.vscode', 'mcp.json');
+      assert.match(readFileSync(claudeConfig, 'utf8'), /filesystem/);
+      assert.match(readFileSync(vscodeConfig, 'utf8'), /filesystem/);
+
+      await removeCommand(['mcp', 'filesystem'], { store });
+
+      assert.doesNotMatch(readFileSync(claudeConfig, 'utf8'), /filesystem/);
+      assert.doesNotMatch(readFileSync(vscodeConfig, 'utf8'), /filesystem/);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('removing a skill deletes its native copy in every agent with a skillsDir', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-remove-skill-native-'));
+    const originalFetch = globalThis.fetch;
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveManifest(store.loadManifest());
+      store.saveSelectedAgents(['claude']);
+      store.addSource('skillsHub', {
+        type: 'git',
+        url: 'https://github.com/vercel-labs/skills',
+        ref: 'main',
+        trusted: true,
+      });
+
+      globalThis.fetch = async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === `https://raw.githubusercontent.com/vercel-labs/skills/${COMMIT}/skills/find-skills/SKILL.md`) {
+          return new Response(SKILL_MARKDOWN, { status: 200 });
+        }
+        if (url === 'https://api.github.com/repos/vercel-labs/skills/commits/main') {
+          return Response.json({ sha: COMMIT });
+        }
+        throw new Error(`Unexpected request: ${url}`);
+      };
+
+      await installCommand(['skill', 'find-skills', '--source', 'skillsHub'], { store });
+
+      const nativeSkillFile = path.resolve(tempDir, '.claude', 'skills', 'find-skills', 'SKILL.md');
+      assert.ok(existsSync(nativeSkillFile));
+
+      await removeCommand(['skill', 'find-skills'], { store });
+
+      assert.equal(existsSync(path.resolve(tempDir, '.claude', 'skills', 'find-skills')), false);
+    } finally {
+      globalThis.fetch = originalFetch;
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('rolls back a skill removal when buildLock fails after removing the dependency', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-remove-rollback-'));
+    const originalFetch = globalThis.fetch;
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveManifest(store.loadManifest());
+      store.addSource('skillsHub', {
+        type: 'git',
+        url: 'https://github.com/vercel-labs/skills',
+        ref: 'main',
+        trusted: true,
+      });
+
+      globalThis.fetch = async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === `https://raw.githubusercontent.com/vercel-labs/skills/${COMMIT}/skills/find-skills/SKILL.md`) {
+          return new Response(SKILL_MARKDOWN, { status: 200 });
+        }
+        if (url === 'https://api.github.com/repos/vercel-labs/skills/commits/main') {
+          return Response.json({ sha: COMMIT });
+        }
+        throw new Error(`Unexpected request: ${url}`);
+      };
+
+      await installCommand(['skill', 'find-skills', '--source', 'skillsHub'], { store });
+      const manifestBeforeRemove = store.loadManifest();
+      assert.ok(manifestBeforeRemove.skills['find-skills']);
+
+      const originalBuildLock = store.buildLock.bind(store);
+      store.buildLock = () => {
+        throw new Error('simulated buildLock failure');
+      };
+
+      await assert.rejects(
+        () => removeCommand(['skill', 'find-skills'], { store }),
+        /simulated buildLock failure/,
+      );
+
+      store.buildLock = originalBuildLock;
+      assert.ok(store.loadManifest().skills['find-skills'], 'dependency should be restored after rollback');
+    } finally {
+      globalThis.fetch = originalFetch;
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+});

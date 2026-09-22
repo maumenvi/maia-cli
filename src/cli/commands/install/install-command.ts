@@ -8,10 +8,12 @@ import { installCatalogResult } from '../../install/external/install-catalog-res
 import { createMcpConfig } from '../../install/mcp/create-mcp-config.ts';
 import { installMcp } from '../../install/mcp/install-mcp.ts';
 import { installSkill } from '../../install/skill/install-skill.ts';
+import { withRollback } from '../../shared/rollback/install-rollback.ts';
 import { parseFlags } from '../../shared/flags/parse-flags.ts';
 import { normalizeKind } from '../../shared/kind.ts';
 import { materializeTool } from '../../shared/workspace/materialize-tool.ts';
 import { reinstallFromLock } from '../../shared/workspace/reinstall-from-lock.ts';
+import { removeMaterializedFile } from '../../shared/workspace/remove-materialized-file.ts';
 import { ensureInitialized } from '../init/ensure-initialized.ts';
 import { restoreConfiguredAgents } from '../init/restore-configured-agents.ts';
 import { hasManualMcpConfig } from './has-manual-mcp-config.ts';
@@ -66,18 +68,35 @@ export const installCommand: CommandHandler = async (args, { store }) => {
     if (!registryEntry) {
       throw new Error(`Tool "${name}" is not available in the local registry`);
     }
+    const lockBeforeInstall = store.loadLock();
     const targetPath = materializeTool(store, name);
-    store.addDependency(kind, name, {
-      version,
-      source: 'local',
-      enabled: true,
-      capabilities: registryEntry.capabilities ?? [],
-      constraints: [],
-      allowedLlms,
-      path: path.relative(store.getPaths().stateDir, targetPath).replaceAll('\\', '/'),
-      inputSchema: registryEntry.inputSchema,
-    });
-    store.buildLock();
+    await withRollback([
+      {
+        run: () => targetPath,
+        undo: () => removeMaterializedFile(targetPath),
+      },
+      {
+        run: () => store.addDependency(kind, name, {
+          version,
+          source: 'local',
+          enabled: true,
+          capabilities: registryEntry.capabilities ?? [],
+          constraints: [],
+          allowedLlms,
+          path: path.relative(store.getPaths().stateDir, targetPath).replaceAll('\\', '/'),
+          inputSchema: registryEntry.inputSchema,
+        }),
+        undo: () => store.removeDependency(kind, name),
+      },
+      {
+        run: () => store.buildLock(),
+        undo: () => {
+          if (lockBeforeInstall) {
+            store.saveLock(lockBeforeInstall);
+          }
+        },
+      },
+    ]);
   } else if (kind === 'mcp') {
     if (!explicitSource && !hasManualMcpConfig(flags)) {
       const { results } = await searchCatalog(store.loadManifest(), 'mcp', name, 10);
@@ -87,7 +106,7 @@ export const installCommand: CommandHandler = async (args, { store }) => {
       }
       await installCatalogResult(store, match, allowedLlms);
     } else {
-      installMcp(
+      await installMcp(
         store,
         name,
         explicitSource ?? 'local',

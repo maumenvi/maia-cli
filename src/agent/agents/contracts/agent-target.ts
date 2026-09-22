@@ -1,4 +1,5 @@
 import type { AgentConfigFormat } from '../inject/agent-config-format.ts';
+import type { MCPConfig } from '../../tools/contracts/mcp-config.ts';
 import type { AgentMcpEntry } from './agent-mcp-entry.ts';
 
 /** Describes the agent target contract. */
@@ -11,6 +12,14 @@ export interface AgentTarget {
   name: string;
   /** Schema the target's MCP config file uses. */
   configFormat: AgentConfigFormat;
+  /**
+   * MCP transports this agent's native format can represent. Omitted means
+   * permissive — every transport is assumed supported (the case for every
+   * agent today). Declared only when an agent genuinely cannot represent
+   * some transport, so install can skip syncing that agent for that MCP
+   * with an explicit warning instead of writing an unusable config.
+   */
+  supportedTransports?: readonly NonNullable<MCPConfig['transport']>[];
   /**
    * Resolve the absolute path(s) where this agent's MCP config lives.
    * Returns multiple candidates; the first existing one is used,

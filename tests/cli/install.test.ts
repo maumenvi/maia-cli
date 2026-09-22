@@ -186,6 +186,102 @@ describe('CLI install/remove', () => {
     }
   });
 
+  it('rolls back a partial skill install when buildLock fails after materialization', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-skill-rollback-'));
+    const originalFetch = globalThis.fetch;
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveManifest(store.loadManifest());
+      store.addSource('skillsHub', {
+        type: 'git',
+        url: 'https://github.com/vercel-labs/skills',
+        ref: 'main',
+        trusted: true,
+      });
+      store.buildLock(); // ensure ensureInitialized's own buildLock call doesn't consume the simulated failure
+
+      globalThis.fetch = async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === `https://raw.githubusercontent.com/vercel-labs/skills/${COMMIT}/skills/find-skills/SKILL.md`) {
+          return new Response(SKILL_MARKDOWN, { status: 200 });
+        }
+        if (url === 'https://api.github.com/repos/vercel-labs/skills/commits/main') {
+          return Response.json({ sha: COMMIT });
+        }
+        throw new Error(`Unexpected request: ${url}`);
+      };
+
+      const originalBuildLock = store.buildLock.bind(store);
+      store.buildLock = () => {
+        throw new Error('simulated buildLock failure');
+      };
+
+      await assert.rejects(
+        () => installCommand(['skill', 'find-skills', '--source', 'skillsHub'], { store }),
+        /simulated buildLock failure/,
+      );
+
+      store.buildLock = originalBuildLock;
+      const manifest = store.loadManifest();
+      assert.equal(manifest.skills['find-skills'], undefined);
+      assert.equal(existsSync(path.resolve(tempDir, '.maia', 'skills', 'find-skills', 'SKILL.md')), false);
+    } finally {
+      globalThis.fetch = originalFetch;
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('rolls back a partial tool install when buildLock fails after materialization', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-tool-rollback-'));
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveManifest(store.loadManifest());
+      store.buildLock(); // ensure ensureInitialized's own buildLock call doesn't consume the simulated failure
+
+      const originalBuildLock = store.buildLock.bind(store);
+      store.buildLock = () => {
+        throw new Error('simulated buildLock failure');
+      };
+
+      await assert.rejects(
+        () => installCommand(['tool', 'read_file'], { store }),
+        /simulated buildLock failure/,
+      );
+
+      store.buildLock = originalBuildLock;
+      const manifest = store.loadManifest();
+      assert.equal(manifest.tools['read_file'], undefined);
+      assert.equal(existsSync(path.resolve(tempDir, '.maia', 'tools', 'read_file.mjs')), false);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('rolls back a partial MCP install when buildLock fails after registering the dependency', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-mcp-rollback-'));
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveManifest(store.loadManifest());
+      store.buildLock(); // ensure ensureInitialized's own buildLock call doesn't consume the simulated failure
+
+      const originalBuildLock = store.buildLock.bind(store);
+      store.buildLock = () => {
+        throw new Error('simulated buildLock failure');
+      };
+
+      await assert.rejects(
+        () => installCommand(['mcp', 'github', '--transport', 'npx', '--package', '@modelcontextprotocol/server-github'], { store }),
+        /simulated buildLock failure/,
+      );
+
+      store.buildLock = originalBuildLock;
+      const manifest = store.loadManifest();
+      assert.equal(manifest.mcps['github'], undefined);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it('refuses to materialize a tool through a symlinked tools directory', async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-tool-symlink-'));
     const externalDir = mkdtempSync(path.join(os.tmpdir(), 'maia-tool-external-'));

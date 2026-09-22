@@ -235,7 +235,7 @@ describe('MCP Registry provider', () => {
         trusted: true,
       });
       const { installMcp } = await import('../../src/cli/install/mcp/install-mcp.ts');
-      installMcp(store, 'context7fork', 'mcp', '1.0.0', ['*'], config);
+      await installMcp(store, 'context7fork', 'mcp', '1.0.0', ['*'], config);
 
       assert.ok(existsSync(envFile));
       const content = readFileSync(envFile, 'utf8');

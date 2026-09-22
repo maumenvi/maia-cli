@@ -5,14 +5,17 @@ import { parseGitHubRepository } from '../../../agent/catalog/providers/github/p
 import { resolveGitHubCommit } from '../../../agent/catalog/providers/github/resolve-git-hub-commit.ts';
 import { findRegistryEntry } from '../../../agent/catalog/registry/read/find-registry-entry.ts';
 import type { AgentCatalogStore } from '../../../agent/catalog/store/agent-catalog-store.ts';
+import { withRollback } from '../../shared/rollback/install-rollback.ts';
 import { materializeRemoteSkill } from '../../shared/workspace/materialize-remote-skill.ts';
 import { materializeSkill } from '../../shared/workspace/materialize-skill.ts';
+import { removeMaterializedFile } from '../../shared/workspace/remove-materialized-file.ts';
 import type { SkillInstallOptions } from './skill-install-options.ts';
 
 /** Performs the install skill operation. */
 export async function installSkill(store: AgentCatalogStore, options: SkillInstallOptions): Promise<void> {
   const manifest = store.loadManifest();
   const localEntry = options.source === 'local' ? findRegistryEntry('skill', options.name) : undefined;
+  const lockBeforeInstall = store.loadLock();
 
   let targetPath: string;
   if (localEntry) {
@@ -40,14 +43,30 @@ export async function installSkill(store: AgentCatalogStore, options: SkillInsta
     targetPath = await materializeRemoteSkill(store, options.name, source);
   }
 
-  store.addDependency('skill', options.name, {
-    version: options.version,
-    source: options.source,
-    enabled: true,
-    capabilities: [],
-    constraints: [],
-    allowedLlms: options.allowedLlms,
-    path: path.relative(store.getPaths().stateDir, targetPath).replaceAll('\\', '/'),
-  });
-  store.buildLock();
+  await withRollback([
+    {
+      run: () => targetPath,
+      undo: () => removeMaterializedFile(targetPath),
+    },
+    {
+      run: () => store.addDependency('skill', options.name, {
+        version: options.version,
+        source: options.source,
+        enabled: true,
+        capabilities: [],
+        constraints: [],
+        allowedLlms: options.allowedLlms,
+        path: path.relative(store.getPaths().stateDir, targetPath).replaceAll('\\', '/'),
+      }),
+      undo: () => store.removeDependency('skill', options.name),
+    },
+    {
+      run: () => store.buildLock(),
+      undo: () => {
+        if (lockBeforeInstall) {
+          store.saveLock(lockBeforeInstall);
+        }
+      },
+    },
+  ]);
 }
