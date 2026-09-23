@@ -1,4 +1,6 @@
-import type { CommandHandler } from '../contracts/command-handler.ts';
+import type { CommandHandler } from '../contracts/command.handler.ts';
+import { assertLockfileVersionCompatible } from './assert.lockfile.version.compatible.ts';
+import { formatLockVerificationProblems } from './format.lock.verification.problems.ts';
 
 /** Performs the verify command operation. */
 export const verifyCommand: CommandHandler = async (_args, { store }) => {
@@ -6,6 +8,13 @@ export const verifyCommand: CommandHandler = async (_args, { store }) => {
   if (!lock) {
     throw new Error('maia.lock.json not found. Run "maia lock" first.');
   }
-  store.verifyLock(lock);
+
+  assertLockfileVersionCompatible(lock.lockfileVersion);
+
+  const result = store.verifyLock(lock);
+  if (!result.ok) {
+    throw new Error(formatLockVerificationProblems(result.problems));
+  }
+
   console.log('maia.lock.json integrity OK');
 };

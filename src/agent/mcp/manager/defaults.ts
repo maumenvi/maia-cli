@@ -1,4 +1,4 @@
-import type { McpReliabilityConfig } from '../reliability/contracts/mcp-reliability-config.ts';
+import type { McpReliabilityConfig } from '../reliability/contracts/mcp.reliability.config.ts';
 
 export const DEFAULT_RELIABILITY_CONFIG: McpReliabilityConfig = {
   maxRetries: 2,

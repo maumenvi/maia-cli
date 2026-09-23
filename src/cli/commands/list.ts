@@ -1,4 +1,4 @@
-import type { CommandHandler } from '../contracts/command-handler.ts';
+import type { CommandHandler } from '../contracts/command.handler.ts';
 import { normalizeKind } from '../shared/kind.ts';
 
 /** Performs the list command operation. */

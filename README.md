@@ -133,6 +133,39 @@ maia lock
 maia verify
 ```
 
+## Guardrails for destructive actions
+
+Maia blocks destructive file operations by policy rather than by intent. The check
+runs at four points: the `maia guardrail check` command, a pre-commit hook, the CI
+gate, and `maia remove` before it deletes a materialized artifact.
+
+```bash
+maia guardrail check <path...>   # exit 0 allowed, 1 blocked, 2 malformed config
+npm run guardrails:install       # enables the pre-commit hook
+```
+
+The policy lives in `.maia/guardrails.json`:
+
+```json
+{
+  "version": 1,
+  "denyPatterns": ["build/**", "**/*.secret"]
+}
+```
+
+Behavior:
+
+- **No config**: built-in defaults apply (`**/*.env`, `**/credentials/**`). Not an error.
+- **Valid config**: your patterns are added to the defaults. A config never loosens the baseline.
+- **Malformed config**: every destructive action is blocked (fail-closed) and the parse error is reported. A guardrail that fails open gives false confidence.
+
+There is **no runtime override**. No flag, token, or confirmation turns a block into an
+allow; the only way to permit a blocked path is to edit `denyPatterns`, and that edit is
+versioned and reviewable. The decision is made from the target path alone.
+
+The pre-commit hook can be bypassed with `git commit --no-verify`, which cannot be
+disabled — that is why CI runs the same check as the gate that cannot be skipped.
+
 ## Getting started (CLI)
 
 Quick flow:

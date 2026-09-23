@@ -1,7 +1,7 @@
 import path from 'node:path';
 
-import type { AppConfig } from './app-config.ts';
-import { rootDir } from './root-dir.ts';
+import type { AppConfig } from './app.config.ts';
+import { rootDir } from './root.dir.ts';
 
 /** Defines the config value. */
 export const config: AppConfig = {

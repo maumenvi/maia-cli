@@ -1,0 +1,12 @@
+{
+  "name": "fixture",
+  "version": "0.1.0",
+  "maiaVersion": "^99.0.0",
+  "config": {},
+  "registries": {},
+  "sources": {},
+  "skills": {},
+  "mcps": {},
+  "tools": {},
+  "agents": {}
+}

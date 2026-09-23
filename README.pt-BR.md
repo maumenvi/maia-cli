@@ -309,3 +309,36 @@ maia version
 - [Arquitetura do código-fonte](./doc/architecture.md)
 - [Avaliação técnica atualizada](./doc/avaliação.md)
 - [Pendências restantes](./doc/falta.md)
+
+## Guardrails para ações destrutivas
+
+O Maia bloqueia operações destrutivas de arquivo por política, não por intenção. A
+checagem roda em quatro pontos: o comando `maia guardrail check`, um hook de
+pre-commit, o gate de CI, e o `maia remove` antes de apagar um artefato materializado.
+
+```bash
+maia guardrail check <caminho...>   # saída 0 permitido, 1 bloqueado, 2 config malformada
+npm run guardrails:install          # habilita o hook de pre-commit
+```
+
+A política fica em `.maia/guardrails.json`:
+
+```json
+{
+  "version": 1,
+  "denyPatterns": ["build/**", "**/*.secret"]
+}
+```
+
+Comportamento:
+
+- **Sem config**: valem os defaults embutidos (`**/*.env`, `**/credentials/**`). Não é erro.
+- **Config válida**: seus padrões somam aos defaults. Uma config nunca afrouxa o baseline.
+- **Config malformada**: toda ação destrutiva é bloqueada (fail-closed) e o erro de parse é reportado. Um guardrail que falha aberto dá falsa sensação de segurança.
+
+**Não há override em runtime.** Nenhuma flag, token ou confirmação converte um bloqueio
+em permissão; a única forma de liberar um caminho é editar `denyPatterns`, e essa edição
+fica versionada e revisável. A decisão é tomada apenas pelo caminho do alvo.
+
+O hook de pre-commit é contornável com `git commit --no-verify`, que não pode ser
+desabilitado — por isso o CI repete a checagem como gate não-contornável.

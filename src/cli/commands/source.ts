@@ -1,5 +1,6 @@
-import type { CommandHandler } from '../contracts/command-handler.ts';
-import { parseFlags } from '../shared/flags/parse-flags.ts';
+import { isValidGitSourceUrl } from '../../agent/catalog/source/is.valid.git.source.url.ts';
+import type { CommandHandler } from '../contracts/command.handler.ts';
+import { parseFlags } from '../shared/flags/parse.flags.ts';
 
 /** Performs the source command operation. */
 export const sourceCommand: CommandHandler = async (args, { store }) => {
@@ -10,6 +11,9 @@ export const sourceCommand: CommandHandler = async (args, { store }) => {
     const { flags } = parseFlags(args.slice(3));
     if (!alias || !repo) {
       throw new Error('Usage: maia source add <alias> <repo-url> [--ref <ref>] [--trusted true|false]');
+    }
+    if (!isValidGitSourceUrl(repo)) {
+      throw new Error(`"${repo}" is not a valid Git source URL. Expected a URL starting with https://, git@, ssh://, git://, or ending in .git.`);
     }
     store.addSource(alias, {
       type: 'git',
