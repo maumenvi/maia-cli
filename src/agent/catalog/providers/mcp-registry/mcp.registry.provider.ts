@@ -1,7 +1,7 @@
 import type { CatalogProvider } from '../contracts/catalog.provider.ts';
 import type { CatalogSearchResult } from '../contracts/catalog.search.result.ts';
 import type { ResolvedCatalogEntry } from '../contracts/resolved.catalog.entry.ts';
-import { collectCredentialHints } from './collect.credential.hints.ts';
+import { collectCredentialsForTransport } from './collect.credentials.for.transport.ts';
 import type { FetchFn } from './fetch.fn.ts';
 import { fetchWithTimeout } from './fetch.with.timeout.ts';
 import { normalizeBaseUrl } from './normalize.base.url.ts';
@@ -46,11 +46,7 @@ export class McpRegistryProvider implements CatalogProvider {
       if (!server.name || !vscode) {
         return [];
       }
-      const npmCredentials = server.packages?.flatMap((item) => collectCredentialHints(item.environmentVariables, server.name, server.repository?.url)) ?? [];
-      const remoteCredentials = server.remotes?.flatMap((item) => collectCredentialHints(item.headers, server.name, server.repository?.url || item.url)) ?? [];
-      const credentials = [...npmCredentials, ...remoteCredentials].filter((value, index, values) =>
-        values.findIndex((candidate) => candidate.name === value.name && candidate.sourceUrl === value.sourceUrl) === index,
-      );
+      const credentials = collectCredentialsForTransport(server);
       return [{
         id: server.name,
         kind: 'mcp' as const,

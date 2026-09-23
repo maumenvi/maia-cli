@@ -61,15 +61,13 @@ describe('MCP Registry provider', () => {
       const results = await discoverMcpsFromStore(store, 'filesystem');
       assert.equal(results.length, 1);
       assert.equal(results[0]?.version, '1.2.3');
+      // Only the npm transport's credential. The server also publishes a remote
+      // with its own Authorization header, but the npm package is what gets
+      // installed, so that header would be an env variable nothing ever reads.
       assert.deepEqual(results[0]?.credentials, [{
         name: 'API_KEY',
         envName: 'FILESYSTEM_API_KEY',
         description: 'API key from Example dashboard',
-        sourceUrl: 'https://github.com/example/filesystem',
-      }, {
-        name: 'AUTHORIZATION',
-        envName: 'FILESYSTEM_AUTHORIZATION',
-        description: 'Bearer token for Example',
         sourceUrl: 'https://github.com/example/filesystem',
       }]);
 
@@ -87,7 +85,7 @@ describe('MCP Registry provider', () => {
       assert.ok(existsSync(envFile));
       const envContent = readFileSync(envFile, 'utf8');
       assert.match(envContent, /FILESYSTEM_API_KEY=""/);
-      assert.match(envContent, /FILESYSTEM_AUTHORIZATION=""/);
+      assert.doesNotMatch(envContent, /FILESYSTEM_AUTHORIZATION/);
       assert.doesNotMatch(envContent, /^AUTHORIZATION=""/m);
     } finally {
       globalThis.fetch = originalFetch;
