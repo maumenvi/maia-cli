@@ -87,8 +87,11 @@ agents and editors can call it automatically without repeated prompting.
 | Continue | `.continue/config.json` | — | `AGENTS.md` |
 | OpenAI Codex | `.codex/config.toml` | — | `AGENTS.md` |
 
-Each installed MCP server is injected individually into the agent's native MCP config next
-to the `maia` proxy (stdio, npx, http, sse, ws). A managed capability block delimited by
+The agent's native MCP config receives the `maia` proxy only; installed MCP servers are
+reached through it rather than being written in individually. A direct entry would be
+spawned by the agent itself, which does not load `.maia/mcp.env` and so cannot resolve the
+`${env:...}` placeholders credentials rely on, nor inherit the shell where the server's
+runtime is resolvable. A managed capability block delimited by
 `<!-- maia:capabilities:start -->` / `<!-- maia:capabilities:end -->` is upserted into the
 instruction file; content outside the markers is never touched, and re-runs are idempotent.
 

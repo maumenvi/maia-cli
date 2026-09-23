@@ -90,7 +90,7 @@ O Maia é útil em cenários como:
   - [Instalação estilo npm](#instalação-estilo-npm)
   - [Lock e contexto](#lock-e-contexto)
   - [Outros comandos](#outros-comandos)
-- [Documentação em `/doc`](#documentação-em-doc)
+- [Documentação complementar](#documentação-complementar)
 
 ## Requisitos
 
@@ -151,7 +151,7 @@ Resultado típico:
 
 - o projeto recebe as pastas de capacidades do Maia;
 - cada agente selecionado recebe um endpoint MCP identificado e um perfil de autorização em `.maia/agents/<id>/`;
-- cada agente selecionado também é integrado nativamente: os MCPs instalados são registrados individualmente no config MCP do próprio agente, ao lado do proxy `maia`; as skills autorizadas são copiadas para a pasta nativa quando houver suporte (ex.: `.claude/skills/`) e, caso contrário, ficam disponíveis pelo MCP Maia; e um bloco gerenciado `maia:capabilities` é inserido/atualizado no arquivo de instruções do agente (`CLAUDE.md`, `.github/copilot-instructions.md`, `AGENTS.md`, …);
+- cada agente selecionado também é integrado nativamente: o proxy `maia` é registrado no config MCP do próprio agente e os MCPs instalados são alcançados através dele; as skills autorizadas são copiadas para a pasta nativa quando houver suporte (ex.: `.claude/skills/`); e um bloco gerenciado `maia:capabilities` é inserido/atualizado no arquivo de instruções do agente (`CLAUDE.md`, `.github/copilot-instructions.md`, `AGENTS.md`, …);
 - skills, MCPs e tools instalados ficam mais fáceis de versionar, compartilhar e reproduzir.
 
 Atualizar o CLI local neste repositório:
@@ -204,7 +204,7 @@ Abrir um transporte MCP lê somente `.maia/mcp.env`; o `.env` do projeto não é
 
 Cada bootstrap nativo executa `maia mcp-server --agent <id>`. Essa identidade permite que o MCP agregado exponha somente skills, tools e MCPs autorizados para o agente selecionado. Arquivos nativos obrigatórios, como `.vscode/mcp.json` ou `.codex/config.toml`, permanecem nos caminhos exigidos pelos clientes; todo o estado pertencente ao Maia fica em `.maia/`.
 
-Além do proxy `maia`, o `configureAgents` grava as capacidades autorizadas diretamente nos locais canônicos de cada agente, para que o agente as reconheça sem precisar ser lembrado:
+O `configureAgents` grava o proxy `maia` e as capacidades autorizadas nos locais canônicos de cada agente, para que o agente as reconheça sem precisar ser lembrado:
 
 | Agente | Config MCP | Skills | Instruções |
 | --- | --- | --- | --- |
@@ -217,6 +217,10 @@ Além do proxy `maia`, o `configureAgents` grava as capacidades autorizadas dire
 | OpenAI Codex | `.codex/config.toml` | — | `AGENTS.md` |
 
 Somente as capacidades autorizadas para o agente (via `allowedLlms` / `llmAccessDefault`) são entregues, e o bloco de instruções fica entre os marcadores `<!-- maia:capabilities:start -->` / `<!-- maia:capabilities:end -->`, de modo que reexecuções nunca duplicam nem sobrescrevem o seu conteúdo.
+
+O config MCP recebe **apenas** o proxy `maia` — os MCPs instalados não são gravados nele individualmente. Uma entrada direta seria iniciada pelo próprio agente, que não carrega o `.maia/mcp.env` e portanto não resolve os placeholders `${env:...}` de que as credenciais dependem, nem herda o shell onde o runtime do servidor é resolvível. Passar pelo proxy mantém a resolução de credenciais, a autorização por agente e o liga/desliga num lugar só: o MCP é declarado uma vez no `maia.json`, e o config do agente apenas aponta para `maia mcp-server --agent <id>`.
+
+As ferramentas proxiadas são expostas como `<servidor>__<ferramenta>` — por exemplo `context7__query-docs`. O nome é saneado para o charset de identificador que os agentes aceitam, já que ids de registro trazem pontos e barras que falham na validação do cliente.
 
 ## Segurança e confiança das fontes
 
@@ -295,20 +299,49 @@ maia context show --for llm
 
 Novos manifests ativam `strictVerify` por padrão. O `maia ci` valida os metadados e a integridade do lock antes de escrever arquivos, restaura os artefatos travados e então verifica seus hashes.
 
-### Outros comandos
+### Descoberta e listagem
 
 ```bash
 maia ls [skill|mcp|tool]
-maia list-tools [query]
+maia list-skills [query] [--json]
+maia list-tools [query] [--json]
+maia list-capabilities [query] [--json]
+```
+
+`maia capabilities` é alias de `list-capabilities`, e `maia discover` de
+`list-tools`. Cada um lista os registros configurados, as entradas instaladas e
+o inventário do registro local; passando uma consulta, também busca nos
+catálogos remotos.
+
+### Servidor MCP
+
+```bash
+maia mcp-server [--name <nome>] [--version <ver>] [--dynamic true] [--agent <id>]
+```
+
+É o servidor stdio agregador ao qual os agentes se conectam. O `--agent` escopa
+as capacidades expostas às autorizações daquele agente; o `--dynamic` recoleta
+as ferramentas a cada `tools/list` em vez de usar o cache da inicialização. Os
+configs de agente já apontam para ele — raramente você o executa à mão.
+
+### Outros comandos
+
+```bash
 maia rm <skill|mcp|tool> <name>
+maia guardrail check <caminho...>
 maia version
 ```
 
-## Documentação em `/doc`
+`maia up` é alias de `maia lock`.
 
-- [Arquitetura do código-fonte](./doc/architecture.md)
-- [Avaliação técnica atualizada](./doc/avaliação.md)
-- [Pendências restantes](./doc/falta.md)
+## Documentação complementar
+
+- [Política de segurança e confiança](./SECURITY.md) — garantias de runtime e seus limites conhecidos
+- [Referência de integração com agentes](./AGENT.md) — como cada agente é configurado
+- [Changelog](./CHANGELOG.md)
+
+As especificações de feature ficam em [`specs/`](./specs/), um diretório por feature, cada
+um com spec, plano, pesquisa, modelo de dados, contratos e quebra de tarefas.
 
 ## Guardrails para ações destrutivas
 
