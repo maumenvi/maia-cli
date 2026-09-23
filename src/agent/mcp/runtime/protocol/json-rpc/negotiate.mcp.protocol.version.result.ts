@@ -1,4 +1,4 @@
-import type { MCP_LEGACY_PROTOCOL_VERSIONS } from './protocol-versions.ts';
+import type { MCP_LEGACY_PROTOCOL_VERSIONS } from './protocol.versions.ts';
 
 /**
  * Outcome of negotiating a legacy initialize revision.

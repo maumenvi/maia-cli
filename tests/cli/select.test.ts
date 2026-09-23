@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import type { CatalogSearchResult } from '../../src/agent/catalog/providers/contracts/catalog-search-result.ts';
-import type { MCPConfig } from '../../src/agent/tools/contracts/mcp-config.ts';
-import { extractCredentialEnvHints } from '../../src/cli/shared/select/extract-credential-env-hints.ts';
+import type { CatalogSearchResult } from '../../src/agent/catalog/providers/contracts/catalog.search.result.ts';
+import type { MCPConfig } from '../../src/agent/tools/contracts/mcp.config.ts';
+import { extractCredentialEnvHints } from '../../src/cli/shared/select/extract.credential.env.hints.ts';
 
 function mcpResult(vscode: MCPConfig): CatalogSearchResult {
   return {

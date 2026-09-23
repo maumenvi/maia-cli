@@ -1,8 +1,8 @@
-import type { AgentCatalogStore } from '../../catalog/store/agent-catalog-store.ts';
+import type { AgentCatalogStore } from '../../catalog/store/agent.catalog.store.ts';
 import type { Repository } from '../../tools/contracts/repository.ts';
-import type { CircuitState } from '../reliability/contracts/circuit-state.ts';
-import type { McpReliabilityConfig } from '../reliability/contracts/mcp-reliability-config.ts';
-import type { McpSession } from '../runtime/contracts/mcp-session.ts';
+import type { CircuitState } from '../reliability/contracts/circuit.state.ts';
+import type { McpReliabilityConfig } from '../reliability/contracts/mcp.reliability.config.ts';
+import type { McpSession } from '../runtime/contracts/mcp.session.ts';
 
 /** Performs the describe manager operation. */
 export function describeManager(

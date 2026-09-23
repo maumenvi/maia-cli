@@ -1,4 +1,4 @@
-import type { MCPConfig } from '../../tools/contracts/mcp-config.ts';
+import type { MCPConfig } from '../../tools/contracts/mcp.config.ts';
 
 /** Describes the registry entry contract. */
 export interface RegistryEntry {

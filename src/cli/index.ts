@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-import { AgentCatalogStore } from '../agent/catalog/store/agent-catalog-store.ts';
+import { AgentCatalogStore } from '../agent/catalog/store/agent.catalog.store.ts';
 import { helpCommand } from './commands/help.ts';
-import { commandHandlers } from './commands/command-handlers.ts';
-import type { CliContext } from './contracts/cli-context.ts';
+import { commandHandlers } from './commands/command.handlers.ts';
+import type { CliContext } from './contracts/cli.context.ts';
 
 const command = process.argv[2] ?? 'help';
 const args = process.argv.slice(3);

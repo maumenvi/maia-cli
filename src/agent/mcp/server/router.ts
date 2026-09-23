@@ -1,7 +1,7 @@
-import type { AgentCatalogStore } from '../../catalog/store/agent-catalog-store.ts';
-import { canLlmAccessResource } from '../../access/policy/can-llm-access-resource.ts';
-import { AgentMcpManager } from '../manager/manager/agent-mcp-manager.ts';
-import type { McpCallToolResult } from '../runtime/protocol/json-rpc/mcp-call-tool-result.ts';
+import type { AgentCatalogStore } from '../../catalog/store/agent.catalog.store.ts';
+import { canLlmAccessResource } from '../../access/policy/can.llm.access.resource.ts';
+import { AgentMcpManager } from '../manager/manager/agent.mcp.manager.ts';
+import type { McpCallToolResult } from '../runtime/protocol/json-rpc/mcp.call.tool.result.ts';
 
 /**
  * Route a tool call to its origin package.

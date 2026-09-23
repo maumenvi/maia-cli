@@ -1,6 +1,6 @@
-import { isValidGitSourceUrl } from '../../agent/catalog/source/is-valid-git-source-url.ts';
-import type { CommandHandler } from '../contracts/command-handler.ts';
-import { parseFlags } from '../shared/flags/parse-flags.ts';
+import { isValidGitSourceUrl } from '../../agent/catalog/source/is.valid.git.source.url.ts';
+import type { CommandHandler } from '../contracts/command.handler.ts';
+import { parseFlags } from '../shared/flags/parse.flags.ts';
 
 /** Performs the source command operation. */
 export const sourceCommand: CommandHandler = async (args, { store }) => {

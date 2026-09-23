@@ -1,20 +1,20 @@
 import { createInterface } from 'node:readline';
 
-import type { AgentCatalogStore } from '../../catalog/store/agent-catalog-store.ts';
-import { AgentMcpManager } from '../manager/manager/agent-mcp-manager.ts';
-import { createModernResultMeta } from '../runtime/protocol/json-rpc/create-modern-result-meta.ts';
-import { isJsonRpcInboundMessage } from '../runtime/protocol/json-rpc/is-json-rpc-inbound-message.ts';
-import type { JsonRpcFailure } from '../runtime/protocol/json-rpc/json-rpc-failure.ts';
-import type { JsonRpcId } from '../runtime/protocol/json-rpc/json-rpc-id.ts';
-import type { JsonRpcInboundMessage } from '../runtime/protocol/json-rpc/json-rpc-inbound-message.ts';
-import type { JsonRpcResponse } from '../runtime/protocol/json-rpc/json-rpc-response.ts';
-import { negotiateMcpProtocolVersion } from '../runtime/protocol/json-rpc/negotiate-mcp-protocol-version.ts';
-import { MCP_MODERN_PROTOCOL_VERSION } from '../runtime/protocol/json-rpc/protocol-versions.ts';
-import { readModernRequestMeta } from '../runtime/protocol/json-rpc/read-modern-request-meta.ts';
-import { collectAllTools } from './collect/collect-all-tools.ts';
-import type { McpInitializeParams } from './contracts/mcp-initialize-params.ts';
-import type { McpToolEntry } from './contracts/mcp-tool-entry.ts';
-import type { McpStdioServerOptions } from './mcp-stdio-server-options.ts';
+import type { AgentCatalogStore } from '../../catalog/store/agent.catalog.store.ts';
+import { AgentMcpManager } from '../manager/manager/agent.mcp.manager.ts';
+import { createModernResultMeta } from '../runtime/protocol/json-rpc/create.modern.result.meta.ts';
+import { isJsonRpcInboundMessage } from '../runtime/protocol/json-rpc/is.json.rpc.inbound.message.ts';
+import type { JsonRpcFailure } from '../runtime/protocol/json-rpc/json.rpc.failure.ts';
+import type { JsonRpcId } from '../runtime/protocol/json-rpc/json.rpc.id.ts';
+import type { JsonRpcInboundMessage } from '../runtime/protocol/json-rpc/json.rpc.inbound.message.ts';
+import type { JsonRpcResponse } from '../runtime/protocol/json-rpc/json.rpc.response.ts';
+import { negotiateMcpProtocolVersion } from '../runtime/protocol/json-rpc/negotiate.mcp.protocol.version.ts';
+import { MCP_MODERN_PROTOCOL_VERSION } from '../runtime/protocol/json-rpc/protocol.versions.ts';
+import { readModernRequestMeta } from '../runtime/protocol/json-rpc/read.modern.request.meta.ts';
+import { collectAllTools } from './collect/collect.all.tools.ts';
+import type { McpInitializeParams } from './contracts/mcp.initialize.params.ts';
+import type { McpToolEntry } from './contracts/mcp.tool.entry.ts';
+import type { McpStdioServerOptions } from './mcp.stdio.server.options.ts';
 import { routeToolCall } from './router.ts';
 
 /** Serves installed Maia tools over both modern stateless and legacy stateful MCP. */

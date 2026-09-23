@@ -4,9 +4,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { AgentCatalogStore } from '../../src/agent/catalog/store/agent-catalog-store.ts';
-import { discoverSkillsFromStore } from '../../src/cli/commands/skills/discover-skills-from-store.ts';
-import { runSkillsCli } from '../../src/cli/commands/skills/run-skills-cli.ts';
+import { AgentCatalogStore } from '../../src/agent/catalog/store/agent.catalog.store.ts';
+import { discoverSkillsFromStore } from '../../src/cli/commands/skills/discover.skills.from.store.ts';
+import { runSkillsCli } from '../../src/cli/commands/skills/run.skills.cli.ts';
 
 const COMMIT = '0123456789abcdef0123456789abcdef01234567';
 const SKILL_MARKDOWN = `---

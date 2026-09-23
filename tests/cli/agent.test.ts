@@ -4,13 +4,13 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { mcpConfigToServerEntry } from '../../src/agent/agents/inject/mcp-config-to-server-entry.ts';
-import { agentRegistry } from '../../src/agent/agents/registry/agent-registry.ts';
-import { AgentCatalogStore } from '../../src/agent/catalog/store/agent-catalog-store.ts';
-import { agentCommand } from '../../src/cli/commands/agent/agent-command.ts';
-import { initCommand } from '../../src/cli/commands/init/init-command.ts';
-import { parseAgentSelection } from '../../src/cli/commands/init/parse-agent-selection.ts';
-import { installCommand } from '../../src/cli/commands/install/install-command.ts';
+import { mcpConfigToServerEntry } from '../../src/agent/agents/inject/mcp.config.to.server.entry.ts';
+import { agentRegistry } from '../../src/agent/agents/registry/agent.registry.ts';
+import { AgentCatalogStore } from '../../src/agent/catalog/store/agent.catalog.store.ts';
+import { agentCommand } from '../../src/cli/commands/agent/agent.command.ts';
+import { initCommand } from '../../src/cli/commands/init/init.command.ts';
+import { parseAgentSelection } from '../../src/cli/commands/init/parse.agent.selection.ts';
+import { installCommand } from '../../src/cli/commands/install/install.command.ts';
 
 describe('CLI agent/init', () => {
   it('parses multi-agent selections from interactive input', () => {

@@ -1,13 +1,13 @@
 import { buildLockFromManifest } from '../../agent/catalog/lock/build.ts';
-import { isLockStale } from '../../agent/catalog/lock/staleness/is-lock-stale.ts';
-import type { CommandHandler } from '../contracts/command-handler.ts';
-import { withRollback } from '../shared/rollback/install-rollback.ts';
-import { reinstallFromLock } from '../shared/workspace/reinstall-from-lock.ts';
-import { removeMaterializedFile } from '../shared/workspace/remove-materialized-file.ts';
-import { assertLockfileVersionCompatible } from './assert-lockfile-version-compatible.ts';
-import { formatLockVerificationProblems } from './format-lock-verification-problems.ts';
-import { ensureInitialized } from './init/ensure-initialized.ts';
-import { restoreConfiguredAgents } from './init/restore-configured-agents.ts';
+import { isLockStale } from '../../agent/catalog/lock/staleness/is.lock.stale.ts';
+import type { CommandHandler } from '../contracts/command.handler.ts';
+import { withRollback } from '../shared/rollback/install.rollback.ts';
+import { reinstallFromLock } from '../shared/workspace/reinstall.from.lock.ts';
+import { removeMaterializedFile } from '../shared/workspace/remove.materialized.file.ts';
+import { assertLockfileVersionCompatible } from './assert.lockfile.version.compatible.ts';
+import { formatLockVerificationProblems } from './format.lock.verification.problems.ts';
+import { ensureInitialized } from './init/ensure.initialized.ts';
+import { restoreConfiguredAgents } from './init/restore.configured.agents.ts';
 
 /** Verifies existing artifacts before restoring missing lockfile materializations. */
 export const ciCommand: CommandHandler = async (_args, { store }) => {

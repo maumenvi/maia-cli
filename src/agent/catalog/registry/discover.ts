@@ -1,6 +1,6 @@
 import type { CatalogKind } from '../types/kinds.ts';
 import type { RegistryEntry } from '../types/registry.ts';
-import { readRegistry } from './read/read-registry.ts';
+import { readRegistry } from './read/read.registry.ts';
 
 /** Performs the discover registry entries operation. */
 export function discoverRegistryEntries(kind: CatalogKind, query = '', limit = 10): RegistryEntry[] {

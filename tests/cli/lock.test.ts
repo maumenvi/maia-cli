@@ -4,8 +4,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { AgentCatalogStore } from '../../src/agent/catalog/store/agent-catalog-store.ts';
-import { installCommand } from '../../src/cli/commands/install/install-command.ts';
+import { AgentCatalogStore } from '../../src/agent/catalog/store/agent.catalog.store.ts';
+import { installCommand } from '../../src/cli/commands/install/install.command.ts';
 import { lockCommand } from '../../src/cli/commands/lock.ts';
 
 describe('CLI lock', () => {

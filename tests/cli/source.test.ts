@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { AgentCatalogStore } from '../../src/agent/catalog/store/agent-catalog-store.ts';
+import { AgentCatalogStore } from '../../src/agent/catalog/store/agent.catalog.store.ts';
 import { sourceCommand } from '../../src/cli/commands/source.ts';
 
 describe('CLI source', () => {

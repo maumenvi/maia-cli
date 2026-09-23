@@ -1,11 +1,11 @@
-import { resolveSourceCommit } from '../manifest/source-hash/resolve-source-commit.ts';
-import { findRegistryEntry } from '../registry/read/find-registry-entry.ts';
-import { packageKey } from '../shared/hash/package-key.ts';
+import { resolveSourceCommit } from '../manifest/source-hash/resolve.source.commit.ts';
+import { findRegistryEntry } from '../registry/read/find.registry.entry.ts';
+import { packageKey } from '../shared/hash/package.key.ts';
 import { dependencySectionForKind } from '../shared/sections.ts';
 import type { CatalogKind } from '../types/kinds.ts';
-import type { SourceLock } from '../types/lock/source-lock.ts';
-import type { SourcesManifest } from '../types/manifest/sources-manifest.ts';
-import { createPackageDescriptor } from './package-descriptor.ts';
+import type { SourceLock } from '../types/lock/source.lock.ts';
+import type { SourcesManifest } from '../types/manifest/sources.manifest.ts';
+import { createPackageDescriptor } from './package.descriptor.ts';
 
 /** Performs the build lock from manifest operation. */
 export function buildLockFromManifest(manifest: SourcesManifest, workspaceRoot = process.cwd()): SourceLock {

@@ -4,9 +4,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { AgentCatalogStore } from '../../src/agent/catalog/store/agent-catalog-store.ts';
+import { AgentCatalogStore } from '../../src/agent/catalog/store/agent.catalog.store.ts';
 import { ciCommand } from '../../src/cli/commands/ci.ts';
-import { installCommand } from '../../src/cli/commands/install/install-command.ts';
+import { installCommand } from '../../src/cli/commands/install/install.command.ts';
 
 const SKILL_MARKDOWN = `---
 name: find-skills

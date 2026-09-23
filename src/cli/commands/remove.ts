@@ -1,20 +1,20 @@
 import path from 'node:path';
 
-import { removeAgentMcpEntry } from '../../agent/agents/inject/remove-agent-mcp-entry.ts';
-import { resolveConfigPath } from '../../agent/agents/inject/resolve-config-path.ts';
-import type { CommandHandler } from '../contracts/command-handler.ts';
+import { removeAgentMcpEntry } from '../../agent/agents/inject/remove.agent.mcp.entry.ts';
+import { resolveConfigPath } from '../../agent/agents/inject/resolve.config.path.ts';
+import type { CommandHandler } from '../contracts/command.handler.ts';
 import { normalizeKind } from '../shared/kind.ts';
 import { assertPathAllowed } from '../shared/guardrail/assert.path.allowed.ts';
-import { withRollback } from '../shared/rollback/install-rollback.ts';
-import { removeEmptyFallbackDir } from '../shared/workspace/remove-empty-fallback-dir.ts';
-import { removeMaterializedFile } from '../shared/workspace/remove-materialized-file.ts';
-import { resolveExistingMaterializedPath } from '../shared/workspace/resolve-existing-materialized-path.ts';
-import { resolveSkillsDir } from '../shared/workspace/resolve-skills-dir.ts';
-import { resolveToolsDir } from '../shared/workspace/resolve-tools-dir.ts';
-import { resolveWorkspaceRoot } from '../shared/workspace/resolve-workspace-root.ts';
-import { removeNativeAgentSkillCopies } from './agent/remove-native-agent-artifacts.ts';
-import { resolveTargets } from './agent/resolve-targets.ts';
-import { restoreConfiguredAgents } from './init/restore-configured-agents.ts';
+import { withRollback } from '../shared/rollback/install.rollback.ts';
+import { removeEmptyFallbackDir } from '../shared/workspace/remove.empty.fallback.dir.ts';
+import { removeMaterializedFile } from '../shared/workspace/remove.materialized.file.ts';
+import { resolveExistingMaterializedPath } from '../shared/workspace/resolve.existing.materialized.path.ts';
+import { resolveSkillsDir } from '../shared/workspace/resolve.skills.dir.ts';
+import { resolveToolsDir } from '../shared/workspace/resolve.tools.dir.ts';
+import { resolveWorkspaceRoot } from '../shared/workspace/resolve.workspace.root.ts';
+import { removeNativeAgentSkillCopies } from './agent/remove.native.agent.artifacts.ts';
+import { resolveTargets } from './agent/resolve.targets.ts';
+import { restoreConfiguredAgents } from './init/restore.configured.agents.ts';
 
 /** Performs the remove command operation. */
 export const removeCommand: CommandHandler = async (args, { store }) => {

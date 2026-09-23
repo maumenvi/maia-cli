@@ -4,8 +4,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { AgentCatalogStore } from '../../src/agent/catalog/store/agent-catalog-store.ts';
-import { installCommand } from '../../src/cli/commands/install/install-command.ts';
+import { AgentCatalogStore } from '../../src/agent/catalog/store/agent.catalog.store.ts';
+import { installCommand } from '../../src/cli/commands/install/install.command.ts';
 import { removeCommand } from '../../src/cli/commands/remove.ts';
 
 const COMMIT = '0123456789abcdef0123456789abcdef01234567';

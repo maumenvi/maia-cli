@@ -1,7 +1,7 @@
 import path from 'node:path';
 
-import { MAIA_PACKAGE_METADATA } from '../../../shared/package-metadata.ts';
-import type { SourcesManifest } from '../types/manifest/sources-manifest.ts';
+import { MAIA_PACKAGE_METADATA } from '../../../shared/package.metadata.ts';
+import type { SourcesManifest } from '../types/manifest/sources.manifest.ts';
 
 /** Performs the create default manifest operation. */
 export const createDefaultManifest = (): SourcesManifest => ({

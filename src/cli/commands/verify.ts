@@ -1,6 +1,6 @@
-import type { CommandHandler } from '../contracts/command-handler.ts';
-import { assertLockfileVersionCompatible } from './assert-lockfile-version-compatible.ts';
-import { formatLockVerificationProblems } from './format-lock-verification-problems.ts';
+import type { CommandHandler } from '../contracts/command.handler.ts';
+import { assertLockfileVersionCompatible } from './assert.lockfile.version.compatible.ts';
+import { formatLockVerificationProblems } from './format.lock.verification.problems.ts';
 
 /** Performs the verify command operation. */
 export const verifyCommand: CommandHandler = async (_args, { store }) => {

@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { AgentCatalogStore } from '../../src/agent/catalog/store/agent-catalog-store.ts';
+import { AgentCatalogStore } from '../../src/agent/catalog/store/agent.catalog.store.ts';
 import { guardrailCommand } from '../../src/cli/commands/guardrail.ts';
 
 function withWorkspace<T>(run: (dir: string, store: AgentCatalogStore) => T): T {

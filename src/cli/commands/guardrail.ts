@@ -1,4 +1,4 @@
-import type { CommandHandler } from '../contracts/command-handler.ts';
+import type { CommandHandler } from '../contracts/command.handler.ts';
 import { assertPathAllowed } from '../shared/guardrail/assert.path.allowed.ts';
 
 /**

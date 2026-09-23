@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs';
 
-import { normalizeRegistryPath } from '../manifest/runtime-path.ts';
+import { normalizeRegistryPath } from '../manifest/runtime.path.ts';
 import type { CatalogKind } from '../types/kinds.ts';
-import { findRegistryEntry } from './read/find-registry-entry.ts';
+import { findRegistryEntry } from './read/find.registry.entry.ts';
 
 /** Performs the resolve runtime module path operation. */
 export function resolveRuntimeModulePath(kind: CatalogKind, name: string): string {

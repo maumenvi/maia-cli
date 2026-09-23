@@ -4,9 +4,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { AgentCatalogStore } from '../../src/agent/catalog/store/agent-catalog-store.ts';
+import { AgentCatalogStore } from '../../src/agent/catalog/store/agent.catalog.store.ts';
 import { contextCommand } from '../../src/cli/commands/context.ts';
-import { installCommand } from '../../src/cli/commands/install/install-command.ts';
+import { installCommand } from '../../src/cli/commands/install/install.command.ts';
 
 describe('CLI context', () => {
   it('builds both context artifacts', async () => {

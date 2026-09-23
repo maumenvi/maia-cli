@@ -4,8 +4,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { AgentCatalogStore } from '../../src/agent/catalog/store/agent-catalog-store.ts';
-import { installCommand } from '../../src/cli/commands/install/install-command.ts';
+import { AgentCatalogStore } from '../../src/agent/catalog/store/agent.catalog.store.ts';
+import { installCommand } from '../../src/cli/commands/install/install.command.ts';
 import { verifyCommand } from '../../src/cli/commands/verify.ts';
 
 describe('CLI verify', () => {
@@ -129,7 +129,7 @@ describe('CLI verify', () => {
       assert.ok(toolKey);
       delete lock.packages[toolKey].artifactHash;
       lock.packages[toolKey].integrity = 'recomputed-below';
-      const { computeLockIntegrity } = await import('../../src/agent/catalog/lock/integrity/compute-lock-integrity.ts');
+      const { computeLockIntegrity } = await import('../../src/agent/catalog/lock/integrity/compute.lock.integrity.ts');
       lock.packages[toolKey].integrity = computeLockIntegrity(lock.packages[toolKey]);
       store.saveLock(lock);
 
