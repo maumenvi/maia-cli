@@ -223,8 +223,11 @@ describe('CLI agent/init', () => {
       await agentCommand(['claude'], { store });
 
       const mcpConfig = JSON.parse(readFileSync(path.resolve(tempDir, '.mcp.json'), 'utf8'));
-      assert.ok(mcpConfig.mcpServers.filesystem, 'individual MCP is registered natively');
-      assert.ok(mcpConfig.mcpServers.maia, 'maia proxy stays registered');
+      // FR-006 registers the Maia proxy, not each MCP: a direct entry is spawned
+      // by the agent, which does not load .maia/mcp.env and so never resolves the
+      // credential placeholders these configs rely on.
+      assert.ok(mcpConfig.mcpServers.maia, 'maia proxy is registered');
+      assert.equal(mcpConfig.mcpServers.filesystem, undefined, 'MCPs are reached through the proxy');
 
       assert.ok(existsSync(path.resolve(tempDir, '.claude', 'skills', 'demo', 'SKILL.md')));
       assert.equal(existsSync(path.resolve(tempDir, '.claude', 'skills', 'codex-secret', 'SKILL.md')), false);
@@ -238,7 +241,8 @@ describe('CLI agent/init', () => {
       const claudeMdAgain = readFileSync(path.resolve(tempDir, 'CLAUDE.md'), 'utf8');
       assert.equal((claudeMdAgain.match(/maia:capabilities:start/g) ?? []).length, 1);
       const mcpConfigAgain = JSON.parse(readFileSync(path.resolve(tempDir, '.mcp.json'), 'utf8'));
-      assert.equal(Object.keys(mcpConfigAgain.mcpServers).length, 2);
+      // Idempotent (FR-009): only the maia proxy, and no duplicate of it.
+      assert.deepEqual(Object.keys(mcpConfigAgain.mcpServers), ['maia']);
     } finally {
       process.chdir(originalCwd);
       rmSync(tempDir, { recursive: true, force: true });

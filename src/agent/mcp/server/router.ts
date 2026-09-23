@@ -2,6 +2,7 @@ import type { AgentCatalogStore } from '../../catalog/store/agent.catalog.store.
 import { canLlmAccessResource } from '../../access/policy/can.llm.access.resource.ts';
 import { AgentMcpManager } from '../manager/manager/agent.mcp.manager.ts';
 import type { McpCallToolResult } from '../runtime/protocol/json-rpc/mcp.call.tool.result.ts';
+import type { McpToolEntry } from './contracts/mcp.tool.entry.ts';
 
 /**
  * Route a tool call to its origin package.
@@ -16,12 +17,15 @@ export async function routeToolCall(
   catalog: AgentCatalogStore,
   mcpManager: AgentMcpManager,
   agentId?: string,
+  tools: McpToolEntry[] = [],
 ): Promise<McpCallToolResult> {
-  // MCP proxied tool: name contains double underscore separator
-  const sep = toolName.indexOf('__');
-  if (sep !== -1) {
-    const serverName = toolName.substring(0, sep);
-    const mcpToolName = toolName.substring(sep + 2);
+  // MCP proxied tool. The exposed name is sanitized for the agent identifier
+  // charset, so it cannot be split back into the real server id; the entry's
+  // `origin` carries that id and is the authoritative mapping.
+  const proxied = tools.find((entry) => entry.name === toolName && entry.origin.startsWith('mcp:'));
+  if (proxied) {
+    const serverName = proxied.origin.slice('mcp:'.length);
+    const mcpToolName = toolName.slice(toolName.indexOf('__') + 2);
     return mcpManager.callTool(serverName, mcpToolName, args, { llmId: agentId });
   }
 

@@ -273,6 +273,7 @@ export class McpStdioServer {
       this.catalog,
       this.mcpManager,
       this.agentId,
+      this.cachedTools,
     );
     return {
       jsonrpc: '2.0',

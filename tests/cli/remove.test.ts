@@ -63,13 +63,17 @@ describe('CLI remove', () => {
 
       const claudeConfig = path.resolve(tempDir, '.mcp.json');
       const vscodeConfig = path.resolve(tempDir, '.vscode', 'mcp.json');
-      assert.match(readFileSync(claudeConfig, 'utf8'), /filesystem/);
-      assert.match(readFileSync(vscodeConfig, 'utf8'), /filesystem/);
+      // Both agents reach MCPs through the maia proxy (FR-006), so neither config
+      // names the MCP directly. What this test guards is that every configured
+      // agent is resynced on removal, not only VS Code.
+      assert.match(readFileSync(claudeConfig, 'utf8'), /maia/);
+      assert.match(readFileSync(vscodeConfig, 'utf8'), /maia/);
 
       await removeCommand(['mcp', 'filesystem'], { store });
 
-      assert.doesNotMatch(readFileSync(claudeConfig, 'utf8'), /filesystem/);
-      assert.doesNotMatch(readFileSync(vscodeConfig, 'utf8'), /filesystem/);
+      assert.match(readFileSync(claudeConfig, 'utf8'), /maia/, 'the proxy survives removing one MCP');
+      assert.match(readFileSync(vscodeConfig, 'utf8'), /maia/);
+      assert.equal(store.loadManifest().mcps['filesystem'], undefined, 'the MCP itself is gone');
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
