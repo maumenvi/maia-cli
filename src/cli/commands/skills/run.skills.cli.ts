@@ -1,5 +1,6 @@
 import { AgentCatalogStore } from '../../../agent/catalog/store/agent.catalog.store.ts';
 import { installCatalogResult } from '../../install/external/install.catalog.result.ts';
+import { restoreConfiguredAgents } from '../init/restore.configured.agents.ts';
 import { selectCatalogResult } from '../../shared/select/select.catalog.result.ts';
 import { directGitHubResult } from './direct.git.hub.result.ts';
 import { discoverSkillsFromStore } from './discover.skills.from.store.ts';
@@ -31,6 +32,7 @@ export async function runSkillsCli(
       try {
         await installCatalogResult(store, selected);
         console.log(`Installed skill:${selected.name}`);
+        restoreConfiguredAgents(store);
         return 0;
       } catch (error) {
         if (!isMissingSkillInSourceError(error)) {
@@ -53,6 +55,7 @@ export async function runSkillsCli(
     if (direct) {
       await installCatalogResult(store, direct);
       console.log(`Installed skill:${direct.name}`);
+      restoreConfiguredAgents(store);
       return 0;
     }
 
@@ -66,6 +69,7 @@ export async function runSkillsCli(
       try {
         await installCatalogResult(store, selected);
         console.log(`Installed skill:${selected.name}`);
+        restoreConfiguredAgents(store);
         return 0;
       } catch (error) {
         if (!isMissingSkillInSourceError(error)) {

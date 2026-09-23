@@ -2,6 +2,7 @@ import type { CommandHandler } from '../../contracts/command.handler.ts';
 import { bestCatalogMatch } from '../../install/external/best.catalog.match.ts';
 import { installCatalogResult } from '../../install/external/install.catalog.result.ts';
 import { selectCatalogResult } from '../../shared/select/select.catalog.result.ts';
+import { restoreConfiguredAgents } from '../init/restore.configured.agents.ts';
 import { discoverMcpsFromStore } from './discover.mcps.from.store.ts';
 import { warnWhenNoAgentConfigured } from './warn.when.no.agent.configured.ts';
 
@@ -24,6 +25,9 @@ export const mcpCommand: CommandHandler = async (args, { store }) => {
     if (selected) {
       await installCatalogResult(store, selected);
       console.log(`Installed mcp:${selected.name}`);
+      // Installing must leave the MCP ready to use, so push it into every
+      // configured agent instead of waiting for a separate sync.
+      restoreConfiguredAgents(store);
       const warning = warnWhenNoAgentConfigured(store);
       if (warning) console.warn(warning);
     }
@@ -41,6 +45,7 @@ export const mcpCommand: CommandHandler = async (args, { store }) => {
     }
     await installCatalogResult(store, selected);
     console.log(`Installed mcp:${selected.name}`);
+    restoreConfiguredAgents(store);
     const warning = warnWhenNoAgentConfigured(store);
     if (warning) console.warn(warning);
     return;
