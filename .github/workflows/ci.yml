@@ -34,6 +34,9 @@ jobs:
       - name: Check source architecture
         run: npm run check:architecture
 
+      - name: Check guardrails
+        run: npm run guardrails:check
+
       - name: Package CLI
         run: npm pack
 

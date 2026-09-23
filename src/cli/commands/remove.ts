@@ -4,6 +4,7 @@ import { removeAgentMcpEntry } from '../../agent/agents/inject/remove-agent-mcp-
 import { resolveConfigPath } from '../../agent/agents/inject/resolve-config-path.ts';
 import type { CommandHandler } from '../contracts/command-handler.ts';
 import { normalizeKind } from '../shared/kind.ts';
+import { assertPathAllowed } from '../shared/guardrail/assert.path.allowed.ts';
 import { withRollback } from '../shared/rollback/install-rollback.ts';
 import { removeEmptyFallbackDir } from '../shared/workspace/remove-empty-fallback-dir.ts';
 import { removeMaterializedFile } from '../shared/workspace/remove-materialized-file.ts';
@@ -44,6 +45,20 @@ export const removeCommand: CommandHandler = async (args, { store }) => {
       path.posix.join('tools', `${name}.mjs`),
       path.posix.join('tools', `${name}.ts`),
     ]);
+  }
+
+  // Consulted before withRollback, not as a step inside it: a failing step
+  // triggers the rollback of earlier ones, but here there is nothing to undo —
+  // the intent is to never start. An mcp has no materialized file, so there is
+  // no path to evaluate in that case.
+  if (materializedPath) {
+    assertPathAllowed(
+      store.getPaths().projectRoot,
+      workspaceRoot,
+      materializedPath,
+      'file-delete',
+      `maia remove ${kind} ${name}`,
+    );
   }
 
   await withRollback([

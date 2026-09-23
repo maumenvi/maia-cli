@@ -20,6 +20,7 @@ export const helpCommand: CommandHandler = async () => {
     'maia lock',
     'maia ci',
     'maia verify',
+    'maia guardrail check <path...>',
     'maia source add <alias> <repo-url> [--ref <ref>] [--trusted true|false]',
     'maia source ls',
     'maia skills find <query>',

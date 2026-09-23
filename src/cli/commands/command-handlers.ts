@@ -2,6 +2,7 @@ import type { CommandHandler } from '../contracts/command-handler.ts';
 import { agentCommand } from './agent/agent-command.ts';
 import { ciCommand } from './ci.ts';
 import { contextCommand } from './context.ts';
+import { guardrailCommand } from './guardrail.ts';
 import { helpCommand } from './help.ts';
 import { initCommand } from './init/init-command.ts';
 import { installCommand } from './install/install-command.ts';
@@ -35,6 +36,7 @@ export const commandHandlers: Record<string, CommandHandler> = {
   lock: lockCommand,
   up: lockCommand,
   ci: ciCommand,
+  guardrail: guardrailCommand,
   verify: verifyCommand,
   context: contextCommand,
   mcp: mcpCommand,

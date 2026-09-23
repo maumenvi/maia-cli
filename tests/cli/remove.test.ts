@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
@@ -156,6 +156,83 @@ describe('CLI remove', () => {
       assert.ok(store.loadManifest().skills['find-skills'], 'dependency should be restored after rollback');
     } finally {
       globalThis.fetch = originalFetch;
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('blocks a removal whose materialized file matches the deny list, before deleting it', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-remove-guardrail-'));
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveManifest(store.loadManifest());
+
+      await installCommand(['tool', 'read_file'], { store });
+      const lock = store.loadLock();
+      const toolPath = lock?.packages['tool:read_file']?.path;
+      assert.ok(toolPath);
+      const absoluteToolPath = path.resolve(tempDir, '.maia', toolPath);
+      assert.ok(existsSync(absoluteToolPath));
+
+      mkdirSync(path.join(tempDir, '.maia'), { recursive: true });
+      writeFileSync(
+        path.join(tempDir, '.maia', 'guardrails.json'),
+        JSON.stringify({ version: 1, denyPatterns: ['tools/**'] }),
+      );
+
+      await assert.rejects(() => removeCommand(['tool', 'read_file'], { store }), /BLOCK/);
+
+      assert.ok(existsSync(absoluteToolPath), 'the artifact must survive a blocked removal');
+      assert.ok(store.loadManifest().tools['read_file'], 'the manifest must stay untouched');
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('allows a removal whose materialized file matches no deny pattern', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-remove-allowed-'));
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveManifest(store.loadManifest());
+
+      await installCommand(['tool', 'read_file'], { store });
+      mkdirSync(path.join(tempDir, '.maia'), { recursive: true });
+      writeFileSync(
+        path.join(tempDir, '.maia', 'guardrails.json'),
+        JSON.stringify({ version: 1, denyPatterns: ['build/**'] }),
+      );
+
+      await assert.doesNotReject(() => removeCommand(['tool', 'read_file'], { store }));
+      assert.equal(store.loadManifest().tools['read_file'], undefined);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('removes an mcp with no materialized file even when a deny list exists', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-remove-mcp-guardrail-'));
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveManifest(store.loadManifest());
+      store.addDependency('mcp', 'filesystem', {
+        version: '*',
+        source: 'local',
+        enabled: true,
+        capabilities: [],
+        constraints: [],
+        allowedLlms: ['*'],
+        vscode: { command: 'node', args: [], env: {} },
+      });
+      store.buildLock();
+
+      mkdirSync(path.join(tempDir, '.maia'), { recursive: true });
+      writeFileSync(
+        path.join(tempDir, '.maia', 'guardrails.json'),
+        JSON.stringify({ version: 1, denyPatterns: ['**/*'] }),
+      );
+
+      await assert.doesNotReject(() => removeCommand(['mcp', 'filesystem'], { store }));
+      assert.equal(store.loadManifest().mcps['filesystem'], undefined);
+    } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
   });

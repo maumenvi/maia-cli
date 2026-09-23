@@ -42,6 +42,8 @@
     "test": "node scripts/run-tests.mjs",
     "test:coverage": "node scripts/run-tests.mjs --coverage",
     "check:architecture": "node scripts/check-source-architecture.mjs",
+    "guardrails:check": "node scripts/check-guardrails.mjs",
+    "guardrails:install": "git config core.hooksPath .githooks",
     "typecheck": "tsc --noEmit"
   },
   "engines": {

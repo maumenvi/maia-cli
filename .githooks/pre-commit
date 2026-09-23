@@ -1,0 +1,4 @@
+#!/bin/sh
+# Local guardrail feedback. Bypassable with --no-verify, which is why CI runs
+# the same check as the gate that cannot be skipped.
+exec node "$(dirname "$0")/../scripts/check-guardrails.mjs"
