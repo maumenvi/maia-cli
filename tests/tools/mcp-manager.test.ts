@@ -134,6 +134,30 @@ describe('AgentMcpManager', () => {
       }
     });
 
+    it('passes no parent secret to an MCP that declares no environment', async () => {
+      const undeclaredSecretName = 'MAIA_TEST_NO_DECLARATION_SECRET';
+      const previous = process.env[undeclaredSecretName];
+      process.env[undeclaredSecretName] = 'must-not-leak';
+
+      try {
+        await manager.installWithVscode('mock-env-bare', {
+          version: '*',
+          source: 'local',
+          enabled: true,
+          vscode: { command: 'node', args: [envFixturePath], env: {} },
+        });
+
+        const result = await manager.callTool('mock-env-bare', 'read-env', {
+          names: [undeclaredSecretName],
+        });
+        const values = JSON.parse(result.content?.[0]?.text ?? '{}') as Record<string, string | null>;
+        assert.equal(values[undeclaredSecretName], null);
+      } finally {
+        if (typeof previous === 'undefined') delete process.env[undeclaredSecretName];
+        else process.env[undeclaredSecretName] = previous;
+      }
+    });
+
     it('retries transient callTool failures with backoff', async () => {
       await manager.installWithVscode('mock-flaky', {
         version: '*',

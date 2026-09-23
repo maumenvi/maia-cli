@@ -15,7 +15,9 @@ import type { JsonRpcResponse } from '../../protocol/json-rpc/json-rpc-response.
 import type { JsonRpcSuccess } from '../../protocol/json-rpc/json-rpc-success.ts';
 import { McpJsonRpcError } from '../../protocol/json-rpc/mcp-json-rpc-error.ts';
 import { asStdioConfig } from './as-stdio-config.ts';
+import { assertRequiredEnv } from './assert.required.env.ts';
 import type { PendingRequest } from './pending-request.ts';
+import { redactSecretsFromStream } from './redact.secrets.from.stream.ts';
 import { resolveRuntimeEnv } from './resolve-runtime-env.ts';
 import { resolveSafeInheritedEnv } from './resolve-safe-inherited-env.ts';
 
@@ -27,6 +29,7 @@ export class McpStdioTransport implements McpTransport {
   private readonly child: ChildProcessWithoutNullStreams;
   private readonly decoder = new McpMessageDecoder();
   private readonly pending = new Map<number, PendingRequest>();
+  private readonly injectedEnv: Record<string, string>;
   private nextRequestId = 1;
   private open = true;
 
@@ -35,7 +38,11 @@ export class McpStdioTransport implements McpTransport {
     this.config = asStdioConfig(config);
     this.defaultTimeoutMs = defaultTimeoutMs;
     loadMcpEnvFromCurrentProject();
+    // Fail before spawning: an unresolved placeholder would otherwise become an
+    // empty credential and surface later as an unrelated transport error.
+    assertRequiredEnv(this.config.env);
     const runtimeEnv = resolveRuntimeEnv(this.config.env);
+    this.injectedEnv = runtimeEnv;
     this.child = spawn(this.config.command, this.config.args ?? [], {
       stdio: 'pipe',
       env: {
@@ -45,7 +52,11 @@ export class McpStdioTransport implements McpTransport {
     });
 
     this.child.stdout.on('data', (chunk: Buffer) => this.onStdout(chunk));
-    this.child.stderr.on('data', (chunk: Buffer) => process.stderr.write(chunk));
+    // Never relay the child's stderr verbatim: a server echoing its own config
+    // would print an injected credential to the user's terminal (SC-003).
+    this.child.stderr.on('data', (chunk: Buffer) => {
+      process.stderr.write(redactSecretsFromStream(chunk.toString('utf8'), this.injectedEnv));
+    });
     this.child.on('error', (err) => {
       this.open = false;
       this.failAllPending(err);
