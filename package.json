@@ -1,6 +1,6 @@
 {
   "name": "@maumenvi/maia-cli",
-  "version": "1.5.7",
+  "version": "1.5.9",
   "description": "CLI for cataloging and installing skills, MCPs, and tools for AI agents",
   "license": "MIT",
   "type": "module",
