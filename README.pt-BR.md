@@ -154,12 +154,6 @@ Resultado típico:
 - cada agente selecionado também é integrado nativamente: o proxy `maia` é registrado no config MCP do próprio agente e os MCPs instalados são alcançados através dele; as skills autorizadas são copiadas para a pasta nativa quando houver suporte (ex.: `.claude/skills/`); e um bloco gerenciado `maia:capabilities` é inserido/atualizado no arquivo de instruções do agente (`CLAUDE.md`, `.github/copilot-instructions.md`, `AGENTS.md`, …);
 - skills, MCPs e tools instalados ficam mais fáceis de versionar, compartilhar e reproduzir.
 
-Atualizar o CLI local neste repositório:
-
-```bash
-maia-update-local /home/marco/Documentos/projetos/maia-cli
-```
-
 ## Catálogos e credenciais
 
 ### Skills
