@@ -3,6 +3,7 @@ import { bestCatalogMatch } from '../../install/external/best.catalog.match.ts';
 import { installCatalogResult } from '../../install/external/install.catalog.result.ts';
 import { selectCatalogResult } from '../../shared/select/select.catalog.result.ts';
 import { discoverMcpsFromStore } from './discover.mcps.from.store.ts';
+import { warnWhenNoAgentConfigured } from './warn.when.no.agent.configured.ts';
 
 /** Performs the mcp command operation. */
 export const mcpCommand: CommandHandler = async (args, { store }) => {
@@ -23,6 +24,8 @@ export const mcpCommand: CommandHandler = async (args, { store }) => {
     if (selected) {
       await installCatalogResult(store, selected);
       console.log(`Installed mcp:${selected.name}`);
+      const warning = warnWhenNoAgentConfigured(store);
+      if (warning) console.warn(warning);
     }
     return;
   }
@@ -38,6 +41,8 @@ export const mcpCommand: CommandHandler = async (args, { store }) => {
     }
     await installCatalogResult(store, selected);
     console.log(`Installed mcp:${selected.name}`);
+    const warning = warnWhenNoAgentConfigured(store);
+    if (warning) console.warn(warning);
     return;
   }
 

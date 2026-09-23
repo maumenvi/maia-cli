@@ -25,8 +25,14 @@ export async function collectMcpEntries(
             origin: `mcp:${pkg.name}`,
           });
         }
-      } catch {
-        // Server unreachable at startup — skip silently; will retry on next list call
+      } catch (error) {
+        // The server is skipped so one broken MCP cannot hide every other tool,
+        // but never silently: a swallowed error here looks identical to an MCP
+        // that legitimately exposes nothing, which is undiagnosable. stderr is
+        // safe to write to — stdout is the JSON-RPC channel — and the transport
+        // has already redacted any credential value from the message.
+        const reason = error instanceof Error ? error.message : String(error);
+        process.stderr.write(`maia: MCP "${pkg.name}" is unavailable and was skipped: ${reason}\n`);
       }
     }),
   );
