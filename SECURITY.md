@@ -32,3 +32,39 @@ Registry descriptions and credential hints are discovery metadata, not security 
 ## Reporting
 
 Do not include secrets, tokens, or private source contents in a public report. Use the repository's private security-reporting channel when available; otherwise contact the maintainers before disclosing exploitable details.
+
+## Runtime guarantees
+
+These are enforced by the CLI and covered by tests. They constrain blast radius; they
+do not make an untrusted package safe to run.
+
+### Environment isolation
+
+An MCP process inherits only the variables its own runtime needs plus those the package
+explicitly declares. There is no ambient inheritance of the parent environment, so a
+compromised or misbehaving MCP cannot read unrelated secrets from the shell that
+launched Maia. A declared variable that does not resolve fails the start before the
+process spawns, naming every missing variable at once and never printing a value.
+
+### Secret redaction
+
+Credential values are never echoed during entry, never written outside the variables an
+installed MCP references, and never committed. A child MCP's stderr is relayed to the
+user with injected values replaced by `[REDACTED:<NAME>]`, because servers in debug mode
+commonly print their effective configuration.
+
+Known limit: redaction matches the literal value Maia injected. A server that transforms
+a credential before printing it — base64, truncation, hashing — is not caught. Literal
+matching is not a cryptographic barrier; environment isolation above remains the primary
+control.
+
+### Destructive-action guardrails
+
+Destructive file operations are blocked by a deny list rather than by declared intent,
+at four enforcement points: the `maia guardrail check` command, a pre-commit hook, the
+CI gate, and `maia remove` before it deletes a materialized artifact.
+
+A malformed guardrail config blocks every destructive action rather than falling back to
+permissive behavior. There is no runtime override: a blocked path is permitted only by
+editing the deny list, which is a versioned, reviewable change. The pre-commit hook is
+bypassable with `--no-verify`, so CI repeats the check as the gate that cannot be skipped.

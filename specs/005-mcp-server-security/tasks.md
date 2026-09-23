@@ -267,13 +267,13 @@ funcional a mirar caminhos que ainda vão mudar.
 **Escopo medido**: 413 arquivos em `src/`, 22 em `tests/`, 1067 imports relativos.
 Colisões de nome: **nenhuma** (o conjunto pós-transformação é injetivo).
 
-- [ ] T053 Confirmar base limpa e verde antes de começar: `git status --porcelain` vazio, e `npm run typecheck`, `npm test` e `npm run check:architecture` os três passando
-- [ ] T054 Criar `scripts/rename-to-dot-convention.mjs` que executa a migração mecânica: para cada `.ts` sob `src/` e `tests/`, transformar **apenas o basename** de `-` para `.` preservando o sufixo `.test.ts`, usando **`git mv`** (nunca delete+create); **não** renomear diretórios; **não** tocar `src/cli/index.ts` (entrypoint publicado, já conforme), `tests/fixtures/**` (não é fonte TS) nem `dist/` (artefato de build)
-- [ ] T055 Estender `scripts/rename-to-dot-convention.mjs` para reescrever os 1067 imports relativos no **mesmo commit** do rename — `allowImportingTsExtensions` faz os imports carregarem a extensão `.ts` literal, então um rename sem reescrita quebra o build inteiro
-- [ ] T056 Executar a migração e validar os três gates **com a suíte inalterada**: `npm run typecheck`, `npm test`, `npm run check:architecture`
-- [ ] T057 Validar que o diff é puramente mecânico: `git diff --cached --name-status -M` mostra renames (`R`) e mudanças de string de import, e **nada mais**
-- [ ] T058 Validar que nenhum arquivo de fonte sobrou com hífen: `find src tests -name '*.ts' -exec basename {} \; | grep -e '-'` deve retornar vazio (hoje retorna 435)
-- [ ] T059 Validar que o pacote publicável não quebrou: `npm pack --dry-run` e `node src/cli/index.ts help` — um rename acidental do entrypoint quebraria a publicação **sem quebrar nenhum teste**
+- [X] T053 Confirmar base limpa e verde antes de começar: `git status --porcelain` vazio, e `npm run typecheck`, `npm test` e `npm run check:architecture` os três passando
+- [X] T054 Criar `scripts/rename-to-dot-convention.mjs` que executa a migração mecânica: para cada `.ts` sob `src/` e `tests/`, transformar **apenas o basename** de `-` para `.` preservando o sufixo `.test.ts`, usando **`git mv`** (nunca delete+create); **não** renomear diretórios; **não** tocar `src/cli/index.ts` (entrypoint publicado, já conforme), `tests/fixtures/**` (não é fonte TS) nem `dist/` (artefato de build)
+- [X] T055 Estender `scripts/rename-to-dot-convention.mjs` para reescrever os 1067 imports relativos no **mesmo commit** do rename — `allowImportingTsExtensions` faz os imports carregarem a extensão `.ts` literal, então um rename sem reescrita quebra o build inteiro
+- [X] T056 Executar a migração e validar os três gates **com a suíte inalterada**: `npm run typecheck`, `npm test`, `npm run check:architecture`
+- [X] T057 Validar que o diff é puramente mecânico: `git diff --cached --name-status -M` mostra renames (`R`) e mudanças de string de import, e **nada mais**
+- [X] T058 Validar que nenhum arquivo de fonte sobrou com hífen: `find src tests -name '*.ts' -exec basename {} \; | grep -e '-'` deve retornar vazio (hoje retorna 435)
+- [X] T059 Validar que o pacote publicável não quebrou: `npm pack --dry-run` e `node src/cli/index.ts help` — um rename acidental do entrypoint quebraria a publicação **sem quebrar nenhum teste**
 
 **Checkpoint**: repositório na convenção do Princípio IX, comportamento idêntico,
 histórico preservado.

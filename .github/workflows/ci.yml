@@ -37,6 +37,9 @@ jobs:
       - name: Check guardrails
         run: npm run guardrails:check
 
+      - name: Check file naming
+        run: npm run check:naming
+
       - name: Package CLI
         run: npm pack
 

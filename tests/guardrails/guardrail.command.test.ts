@@ -6,6 +6,7 @@ import { describe, it } from 'node:test';
 
 import { AgentCatalogStore } from '../../src/agent/catalog/store/agent.catalog.store.ts';
 import { guardrailCommand } from '../../src/cli/commands/guardrail.ts';
+import { GuardrailBlockedError } from '../../src/cli/shared/guardrail/guardrail.blocked.error.ts';
 
 function withWorkspace<T>(run: (dir: string, store: AgentCatalogStore) => T): T {
   const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-guardrail-'));
@@ -33,7 +34,14 @@ describe('maia guardrail check', () => {
 
   it('exits 1 when a path matches a default deny pattern', async () => {
     await withWorkspace(async (_dir, store) => {
-      await assert.rejects(() => guardrailCommand(['check', '.maia/mcp.env'], { store }));
+      await assert.rejects(
+        () => guardrailCommand(['check', '.maia/mcp.env'], { store }),
+        (error: unknown) => {
+          assert.ok(error instanceof GuardrailBlockedError);
+          assert.equal(error.exitCode, 1);
+          return true;
+        },
+      );
     });
   });
 
@@ -42,7 +50,12 @@ describe('maia guardrail check', () => {
       writeConfig(dir, '{ not json');
       await assert.rejects(
         () => guardrailCommand(['check', 'any-file.txt'], { store }),
-        /malformed/i,
+        (error: unknown) => {
+          assert.ok(error instanceof GuardrailBlockedError);
+          assert.equal(error.exitCode, 2, 'a malformed policy is exit 2, not 1');
+          assert.match(error.message, /malformed/i);
+          return true;
+        },
       );
     });
   });
