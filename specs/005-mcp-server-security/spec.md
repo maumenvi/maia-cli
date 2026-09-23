@@ -11,6 +11,14 @@ servidor MCP e segurança de runtime: descobrir/adicionar/sincronizar MCPs, expo
 capacidades instaladas via stdio com validação de protocolo, isolamento de ambiente
 para processos de MCP, tratamento de segredos, e guardrails para ações destrutivas."
 
+## Clarifications
+
+### Session 2026-09-22
+
+- Q: Quando uma ação destrutiva é bloqueada, o que exatamente permite que ela prossiga mesmo assim? → A: Nenhum override nesta iteração; o bloqueio é absoluto e a única forma de permitir uma ação é editar a deny list configurada.
+- Q: Quais operações do Maia devem passar pelo guardrail antes de executar? → A: O comando de consulta do guardrail, a validação pre-commit e o gate de CI, mais o comando de remoção de capacidade, que consulta o guardrail antes de apagar arquivos materializados.
+- Q: Como o guardrail decide que uma ação é destrutiva — pelo caminho do arquivo alvo, ou pelo tipo de operação que a solicitou? → A: Apenas pelo caminho do alvo casado contra a deny list; as categorias de ação destrutiva reduzem-se a exclusão e sobrescrita de arquivo, derivadas do contexto do chamador.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Descobrir, adicionar e sincronizar MCPs (Priority: P1)
@@ -154,18 +162,23 @@ por política.
 toda outra capacidade (instalar, remover, sync) poderia causar dano irreversível sem
 nenhuma checagem independente.
 
-**Independent Test**: Disparar uma ação classificada como destrutiva sem um override
-explícito, e verificar que ela é bloqueada pelo guardrail em vez de ser concluída com
-base apenas na intenção declarada do requisitante.
+**Independent Test**: Disparar uma ação classificada como destrutiva e verificar que
+ela é bloqueada pelo guardrail em vez de ser concluída com base apenas na intenção
+declarada do requisitante.
 
 **Acceptance Scenarios**:
 
-1. **Given** uma ação classificada como destrutiva, **When** ela é tentada sem
-   satisfazer o guardrail configurado (ex.: deny list, pre-commit check), **Then** a
-   ação é bloqueada.
-2. **Given** uma ação classificada como destrutiva com o guardrail obrigatório
-   satisfeito, **When** ela é tentada, **Then** a ação prossegue e é auditável
-   depois.
+1. **Given** uma ação classificada como destrutiva cujo alvo casa com a deny list
+   configurada, **When** ela é tentada, **Then** a ação é bloqueada.
+2. **Given** uma ação classificada como destrutiva cujo alvo não casa com nenhum
+   padrão da deny list configurada, **When** ela é tentada, **Then** a ação prossegue
+   e é auditável depois.
+3. **Given** uma ação destrutiva bloqueada, **When** o requisitante tenta prosseguir
+   assim mesmo, **Then** não existe nenhum override em runtime que a libere — a
+   única forma de permiti-la é alterar a deny list configurada.
+4. **Given** uma remoção de capacidade cujo arquivo materializado casa com a deny
+   list, **When** a remoção é tentada, **Then** ela é bloqueada antes de qualquer
+   arquivo ser apagado.
 
 ### Edge Cases
 
@@ -202,6 +215,17 @@ base apenas na intenção declarada do requisitante.
 - **FR-007**: Ações destrutivas e alterações de arquivo DEVEM passar por guardrails
   automatizados (como uma deny list e validação pre-commit) e NÃO DEVEM depender
   apenas da intenção declarada pelo modelo ou pelo usuário.
+- **FR-008**: O guardrail DEVE ser aplicado em quatro pontos: um comando de consulta
+  sob demanda, a validação pre-commit, o gate de integração contínua, e o comando de
+  remoção de capacidade, que DEVE consultar o guardrail antes de apagar qualquer
+  arquivo materializado.
+- **FR-009**: Uma ação destrutiva bloqueada NÃO DEVE ter nenhum mecanismo de override
+  em runtime; alterar a deny list configurada é a única forma de permitir uma ação
+  que ela bloqueia.
+- **FR-010**: A decisão do guardrail DEVE ser tomada casando o caminho do arquivo
+  alvo contra a deny list configurada. As ações destrutivas reconhecidas são a
+  exclusão e a sobrescrita de arquivo, derivadas do contexto do chamador; o guardrail
+  NÃO DEVE exigir que o chamador classifique a operação por conta própria.
 
 ### Key Entities
 
@@ -211,9 +235,9 @@ base apenas na intenção declarada do requisitante.
 - **Protocol Message (Mensagem de Protocolo)**: Uma requisição/resposta JSON-RPC
   trocada entre um cliente e o servidor MCP, sujeita a validação estrutural e de
   versão.
-- **Guardrail**: Uma checagem de política automatizada (deny list, pre-commit hook,
-  ou equivalente) que deve ser satisfeita antes de uma ação destrutiva ser permitida
-  a prosseguir.
+- **Guardrail**: Uma checagem de política automatizada que casa o caminho do arquivo
+  alvo contra uma deny list configurada, aplicada nos quatro pontos do FR-008, e que
+  deve permitir a ação antes de ela prosseguir. Sem override em runtime (FR-009).
 - **Environment Scope (Escopo de Ambiente)**: O conjunto mínimo de variáveis de
   ambiente que um processo de MCP tem permissão de herdar ao iniciar.
 
@@ -231,13 +255,17 @@ base apenas na intenção declarada do requisitante.
   arquivos versionados ao longo de um ciclo completo de instalação e execução
   envolvendo MCPs com credenciais.
 - **SC-004**: 100% das ações classificadas como destrutivas são bloqueadas a menos
-  que seu guardrail configurado seja explicitamente satisfeito.
+  que a deny list configurada não case com seu alvo, verificado nos quatro pontos de
+  aplicação do FR-008 — incluindo a remoção de capacidade, onde o bloqueio ocorre
+  antes de qualquer arquivo ser apagado.
 
 ## Assumptions
 
-- "Ações destrutivas" incluem, no mínimo, exclusões irreversíveis de arquivo,
-  sobrescritas forçadas, e qualquer operação explicitamente sinalizada como
-  destrutiva pela própria definição de um comando.
+- "Ações destrutivas" nesta iteração são exclusões irreversíveis de arquivo e
+  sobrescritas forçadas, identificadas pelo caminho do alvo (FR-010). Operações
+  sinalizadas como destrutivas pela definição de um comando entram no escopo quando
+  houver um comando que as produza; nenhuma existe hoje além da remoção de
+  capacidade.
 - O transporte do servidor MCP nesta iteração é apenas stdio; transportes expostos
   em rede (HTTP/SSE) estão fora de escopo.
 - Identificação de agente no nível do protocolo é baseada em informação que o
