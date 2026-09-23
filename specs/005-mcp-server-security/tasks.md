@@ -282,11 +282,11 @@ histórico preservado.
 
 ## Phase 9: Polish & Cross-Cutting Concerns
 
-- [ ] T060 [P] Criar `scripts/check-file-naming.mjs` validando que nenhum `.ts` sob `src/` e `tests/` contém hífen no basename, e adicionar o step ao `.github/workflows/ci.yml` — sem isso **nada impede a convenção de regredir**. Tarefa própria e **fora** do módulo de guardrails: um nome fora da convenção não é ação destrutiva
-- [ ] T061 [P] Documentar `maia guardrail check`, o formato do `.maia/guardrails.json` e a integração com `maia remove` no `README.md` e no `README.pt-BR.md`, incluindo a semântica fail-closed e a ausência de override
-- [ ] T062 [P] Registrar em `SECURITY.md` as garantias de runtime desta feature: isolamento de ambiente por allow-list (SC-002), redação de segredos no stderr com seu limite conhecido (SC-003), e guardrails sem override nos quatro pontos (SC-004)
-- [ ] T063 Verificar os gates de cobertura com os arquivos novos: `npm run test:coverage` exige 80% de linhas, 80% de funções e 70% de branches. Baseline atual: 87.54% / 87.20% / 77.93% — a margem de **branches é a mais apertada (7.93pp)** e `src/guardrails/` adiciona ~10 arquivos
-- [ ] T064 Executar a validação completa de [quickstart.md](./quickstart.md), cenários 1 a 7, confirmando os quatro critérios de sucesso
+- [X] T060 [P] Criar `scripts/check-file-naming.mjs` validando que nenhum `.ts` sob `src/` e `tests/` contém hífen no basename, e adicionar o step ao `.github/workflows/ci.yml` — sem isso **nada impede a convenção de regredir**. Tarefa própria e **fora** do módulo de guardrails: um nome fora da convenção não é ação destrutiva
+- [X] T061 [P] Documentar `maia guardrail check`, o formato do `.maia/guardrails.json` e a integração com `maia remove` no `README.md` e no `README.pt-BR.md`, incluindo a semântica fail-closed e a ausência de override
+- [X] T062 [P] Registrar em `SECURITY.md` as garantias de runtime desta feature: isolamento de ambiente por allow-list (SC-002), redação de segredos no stderr com seu limite conhecido (SC-003), e guardrails sem override nos quatro pontos (SC-004)
+- [X] T063 Verificar os gates de cobertura com os arquivos novos: `npm run test:coverage` exige 80% de linhas, 80% de funções e 70% de branches. Baseline atual: 87.54% / 87.20% / 77.93% — a margem de **branches é a mais apertada (7.93pp)** e `src/guardrails/` adiciona ~10 arquivos
+- [X] T064 Executar a validação completa de [quickstart.md](./quickstart.md), cenários 1 a 7, confirmando os quatro critérios de sucesso
 
 ---
 
