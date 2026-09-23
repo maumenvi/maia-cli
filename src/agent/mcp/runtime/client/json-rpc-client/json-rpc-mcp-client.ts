@@ -138,7 +138,12 @@ export class JsonRpcMcpClient implements McpClient {
 
   /** Completes the initialize/initialized lifecycle for a stateful server. */
   private async initializeLegacy(options: McpRequestOptions): Promise<McpInitializeResult> {
-    const requestedVersion = negotiateMcpProtocolVersion();
+    // The client picks its own preferred revision; calling without an argument
+    // always negotiates successfully, so only the version is needed here.
+    const negotiated = negotiateMcpProtocolVersion();
+    const requestedVersion = negotiated.outcome === 'negotiated'
+      ? negotiated.version
+      : undefined;
     const result = await this.transport.request<McpInitializeResult>('initialize', {
       protocolVersion: requestedVersion,
       capabilities: {},

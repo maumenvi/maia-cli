@@ -26,6 +26,7 @@ export class McpStdioServer {
   private readonly dynamicDiscovery: boolean;
   private readonly agentId?: string;
   private cachedTools: McpToolEntry[] = [];
+  private closing = false;
 
   /** Creates a dual-era aggregate server backed by the supplied catalog. */
   constructor(catalog: AgentCatalogStore, options: McpStdioServerOptions = {}) {
@@ -43,6 +44,7 @@ export class McpStdioServer {
     const rl = createInterface({ input: process.stdin, terminal: false });
 
     rl.on('line', async (line) => {
+      if (this.closing) return;
       const trimmed = line.trim();
       if (!trimmed) return;
 
@@ -65,10 +67,38 @@ export class McpStdioServer {
       }
     });
 
-    rl.on('close', async () => {
-      await this.mcpManager.shutdownAll();
-      process.exit(0);
+    rl.on('close', () => {
+      this.closing = true;
+      void this.shutdown().then((code) => process.exit(code));
     });
+  }
+
+  /**
+   * Releases child MCP sessions and reports the exit code to use.
+   *
+   * The close handler cannot simply call `process.exit`: `shutdownAll` would
+   * never be awaited and child processes could outlive the parent as orphans
+   * still holding credentials in memory. The deadline is the other half — a
+   * server that never answers shutdown must not hang Maia forever.
+   */
+  private async shutdown(deadlineMs = 5_000): Promise<number> {
+    let timer: NodeJS.Timeout | undefined;
+    const deadline = new Promise<'timeout'>((resolve) => {
+      timer = setTimeout(() => resolve('timeout'), deadlineMs);
+      timer.unref?.();
+    });
+
+    try {
+      const outcome = await Promise.race([
+        this.mcpManager.shutdownAll().then(() => 'done' as const),
+        deadline,
+      ]);
+      return outcome === 'done' ? 0 : 1;
+    } catch {
+      return 1;
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
   }
 
   /** Writes one JSON-RPC response without contaminating stdout framing. */
@@ -176,14 +206,32 @@ export class McpStdioServer {
     };
   }
 
-  /** Negotiates a supported stateful protocol revision. */
+  /**
+   * Negotiates a supported stateful protocol revision.
+   *
+   * A revision this server does not implement is rejected with -32602 rather
+   * than silently answered with a different one (FR-004). -32602 is the
+   * JSON-RPC code for an unacceptable parameter value; -32022 belongs to the
+   * modern stateless era and is not mixed into the legacy handshake.
+   */
   private handleInitialize(id: JsonRpcId, params: McpInitializeParams): JsonRpcResponse {
-    const protocolVersion = negotiateMcpProtocolVersion(params?.protocolVersion);
+    const negotiated = negotiateMcpProtocolVersion(params?.protocolVersion);
+    if (negotiated.outcome === 'unsupported') {
+      return {
+        jsonrpc: '2.0',
+        id,
+        error: {
+          code: -32602,
+          message: `Unsupported MCP protocol version ${negotiated.requested}`,
+          data: { requested: negotiated.requested, supported: negotiated.supported },
+        },
+      };
+    }
     return {
       jsonrpc: '2.0',
       id,
       result: {
-        protocolVersion,
+        protocolVersion: negotiated.version,
         serverInfo: { name: this.serverName, version: this.serverVersion },
         capabilities: { tools: {} },
       },

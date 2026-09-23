@@ -164,4 +164,124 @@ describe('McpStdioServer', () => {
       rmSync(tempDir, { recursive: true, force: true });
     }
   });
+
+  it('rejects an initialize that declares an unsupported protocol revision', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-mcp-server-unsupported-'));
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveManifest(store.loadManifest());
+      const server = new McpStdioServer(store);
+
+      const response = await invoke(server, {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: { protocolVersion: '1999-01-01' },
+      });
+
+      assert.ok(response && 'error' in response, 'Expected an error, not a silent reinterpretation');
+      if (!response || !('error' in response)) {
+        throw new Error('Expected initialize error');
+      }
+      assert.equal(response.error.code, -32602);
+      assert.match(response.error.message, /1999-01-01/);
+      const data = response.error.data as { requested?: string; supported?: string[] };
+      assert.equal(data.requested, '1999-01-01');
+      assert.deepEqual(data.supported, ['2025-11-25', '2025-06-18', '2024-11-05']);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps accepting an initialize that omits protocolVersion', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-mcp-server-absent-'));
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveManifest(store.loadManifest());
+      const server = new McpStdioServer(store);
+
+      const response = await invoke(server, { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} });
+
+      assert.ok(response && 'result' in response, 'Absent protocolVersion must not be an error');
+      if (!response || !('result' in response)) {
+        throw new Error('Expected initialize result');
+      }
+      assert.equal((response.result as { protocolVersion?: string }).protocolVersion, '2025-11-25');
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('echoes every supported legacy protocol revision', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-mcp-server-legacy-'));
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveManifest(store.loadManifest());
+      const server = new McpStdioServer(store);
+
+      for (const version of ['2025-11-25', '2025-06-18', '2024-11-05']) {
+        const response = await invoke(server, {
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'initialize',
+          params: { protocolVersion: version },
+        });
+        assert.ok(response && 'result' in response);
+        if (!response || !('result' in response)) {
+          throw new Error(`Expected initialize result for ${version}`);
+        }
+        assert.equal((response.result as { protocolVersion?: string }).protocolVersion, version);
+      }
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('awaits session shutdown before reporting a clean exit code', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-mcp-server-shutdown-'));
+    const fixturePath = fileURLToPath(new URL('../fixtures/mcp/mock-stdio-server.mjs', import.meta.url));
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveManifest(store.loadManifest());
+      store.addDependency('mcp', 'mock', {
+        version: '*',
+        source: 'local',
+        enabled: true,
+        capabilities: [],
+        constraints: [],
+        allowedLlms: ['*'],
+        vscode: { command: 'node', args: [fixturePath], env: {} },
+      });
+      store.buildLock();
+
+      const server = new McpStdioServer(store);
+      await invoke(server, { jsonrpc: '2.0', id: 1, method: 'tools/list' });
+
+      const shutdown = Reflect.get(server as object, 'shutdown') as () => Promise<number>;
+      const exitCode = await shutdown.call(server);
+
+      assert.equal(exitCode, 0);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('exits non-zero when a session refuses to shut down within the deadline', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-mcp-server-hang-'));
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveManifest(store.loadManifest());
+      const server = new McpStdioServer(store);
+
+      const manager = Reflect.get(server as object, 'mcpManager') as { shutdownAll: () => Promise<void> };
+      manager.shutdownAll = () => new Promise<void>(() => {});
+
+      const shutdown = Reflect.get(server as object, 'shutdown') as (deadlineMs?: number) => Promise<number>;
+      const exitCode = await shutdown.call(server, 25);
+
+      assert.equal(exitCode, 1, 'A hung MCP must not hang Maia forever');
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
 });
