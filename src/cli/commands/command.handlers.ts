@@ -16,6 +16,7 @@ import { mcpCommand } from './mcp/mcp.command.ts';
 import { removeCommand } from './remove.ts';
 import { skillsCommand } from './skills/skills.command.ts';
 import { sourceCommand } from './source.ts';
+import { toolkitCommand } from './toolkit/toolkit.command.ts';
 import { verifyCommand } from './verify.ts';
 import { versionCommand } from './version/version.command.ts';
 
@@ -43,6 +44,7 @@ export const commandHandlers: Record<string, CommandHandler> = {
   'mcp-server': mcpServerCommand,
   source: sourceCommand,
   skills: skillsCommand,
+  toolkit: toolkitCommand,
   version: versionCommand,
   '--version': versionCommand,
   '-v': versionCommand,
