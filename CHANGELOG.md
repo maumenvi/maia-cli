@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Toolkits: `maia toolkit i|install <name> [-g] [--version <x.y.z>] [-y]`, `maia toolkit ls`
+  and `maia toolkit rm`, starting with the GitHub Spec Kit (`speckit`). Toolkits are installed
+  by their native installer, recorded in `maia.json`/`maia.lock.json`, restored by `maia i`
+  and `maia ci`, checked by `maia verify` (presence and version), and described by the
+  read-only `maia_toolkits` MCP tool and a `### Toolkits` section in agent instructions.
+- Single-letter boolean flags (`-g`, `-y`) with long forms `--global` and `--yes`.
+
+### Changed
+- `maia.lock.json` uses `lockfileVersion: 2` when it pins toolkits; lockfiles without toolkits
+  stay at version 1. The CLI accepts both.
 - Agent configuration now registers every installed skill and MCP server **natively** in each
   configured agent, not only the aggregating `maia` proxy:
   - installed MCP servers are injected individually into the agent's native MCP config

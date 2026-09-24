@@ -84,6 +84,7 @@ O Maia é útil em cenários como:
   - [Skills](#skills)
   - [MCP](#mcp)
   - [Credenciais MCP](#credenciais-mcp)
+- [Toolkits](#toolkits)
 - [Segurança e confiança das fontes](#segurança-e-confiança-das-fontes)
 - [Referência de comandos](#referência-de-comandos)
   - [Bootstrap do catálogo](#bootstrap-do-catálogo)
@@ -218,6 +219,42 @@ Além do proxy `maia`, o `configureAgents` grava as capacidades autorizadas dire
 
 Somente as capacidades autorizadas para o agente (via `allowedLlms` / `llmAccessDefault`) são entregues, e o bloco de instruções fica entre os marcadores `<!-- maia:capabilities:start -->` / `<!-- maia:capabilities:end -->`, de modo que reexecuções nunca duplicam nem sobrescrevem o seu conteúdo.
 
+## Toolkits
+
+Um **toolkit** é um fluxo de trabalho para agentes, de terceiros, com instalador próprio,
+como o [GitHub Spec Kit](https://github.com/github/spec-kit). O Maia não copia os arquivos do
+toolkit: ele executa o **instalador nativo** (sem shell, só argv), direcionado aos agentes do
+`maia.json`, e registra o resultado no `maia.json` e no `maia.lock.json` para que todo o time
+tenha o mesmo ambiente.
+
+```bash
+maia toolkit i speckit                    # última release estável, neste projeto
+maia toolkit install speckit --version 1.0.11
+maia toolkit i speckit -g                 # instala a ferramenta globalmente e inicializa este projeto
+maia toolkit ls [--json]
+maia toolkit rm speckit                   # pergunta se deve apagar os arquivos do toolkit
+```
+
+- Antes de executar qualquer coisa, o Maia mostra os comandos nativos exatos e a origem e pede
+  confirmação (`-y` pula). Os pré-requisitos são checados antes (o Spec Kit precisa de
+  [`uv`](https://docs.astral.sh/uv/) e Git).
+- `-g` só vale quando o toolkit suporta instalação global; caso contrário o Maia avisa e instala
+  no projeto como se `-g` não tivesse sido informado.
+- Agentes que o toolkit não consegue combinar são pulados com aviso (as integrações `copilot` e
+  `zed` do Spec Kit não coexistem com outras).
+- `maia i` e `maia ci` instalam toolkits ausentes sem perguntar, na versão travada. Um toolkit
+  presente em **outra** versão faz o comando falhar em vez de sobrescrever suas edições; troque
+  de versão explicitamente com `maia toolkit i <nome> --version <x>`.
+- `maia verify` confere toolkits por presença e versão (não por hash, já que os arquivos são
+  feitos para serem editados).
+- O servidor MCP do Maia expõe a ferramenta somente leitura `maia_toolkits` (o que cada toolkit
+  faz, versão, escopo, caminhos, docs). Ela nunca instala nada.
+- `maia toolkit rm` remove o toolkit do `maia.json`/`maia.lock.json` e só apaga arquivos com
+  confirmação explícita, passando pelos guardrails. Uma ferramenta global nunca é desinstalada.
+
+Um lockfile com toolkits usa `lockfileVersion: 2`, para que versões antigas do Maia falhem em
+vez de ignorá-los. Projetos sem toolkits continuam com `lockfileVersion: 1`.
+
 ## Segurança e confiança das fontes
 
 Fontes remotas são consideradas não confiáveis por padrão. O campo `trusted` registra uma decisão revisada de procedência; ele não cria sandbox nem certifica um pacote. Entradas stdio e NPX executam com as permissões do usuário do sistema operacional, embora o Maia limite as variáveis de ambiente herdadas.
@@ -294,6 +331,14 @@ maia context show --for llm
 ```
 
 Novos manifests ativam `strictVerify` por padrão. O `maia ci` valida os metadados e a integridade do lock antes de escrever arquivos, restaura os artefatos travados e então verifica seus hashes.
+
+### Toolkits
+
+```bash
+maia toolkit i|install <nome> [-g|--global] [--version <x.y.z>] [-y|--yes]
+maia toolkit ls|list [--json]
+maia toolkit rm|remove <nome> [-y|--yes]
+```
 
 ### Outros comandos
 

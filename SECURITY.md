@@ -29,6 +29,19 @@ For executable packages:
 
 Registry descriptions and credential hints are discovery metadata, not security attestations. A registry entry must receive the same review as a direct remote source.
 
+## Toolkits
+
+`maia toolkit i` runs a toolkit's native installer (for Spec Kit: `uv`/`uvx`/`specify`), which is
+third-party code executed with the current user's permissions. Maia mitigates this by:
+
+- running commands from argv only, never through a shell, and validating `--version` as `x.y.z`;
+- printing the exact commands and source before running them and asking for confirmation
+  (`-y` is an explicit opt-out);
+- making `maia ci` use only the version and source pinned in `maia.lock.json`;
+- evaluating the guardrails on every toolkit path before a native command that may overwrite
+  (version switch) or delete (`maia toolkit rm`) files; blocked paths are never touched;
+- never uninstalling a globally installed toolkit tool.
+
 ## Reporting
 
 Do not include secrets, tokens, or private source contents in a public report. Use the repository's private security-reporting channel when available; otherwise contact the maintainers before disclosing exploitable details.
