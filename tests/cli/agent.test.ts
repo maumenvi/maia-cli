@@ -236,6 +236,7 @@ describe('CLI agent/init', () => {
       assert.match(claudeMd, /maia:capabilities:start/);
       assert.match(claudeMd, /`demo`/);
       assert.match(claudeMd, /`filesystem`/);
+      assert.match(claudeMd, /### Toolkits\n- _none installed_/);
 
       await agentCommand(['claude'], { store });
       const claudeMdAgain = readFileSync(path.resolve(tempDir, 'CLAUDE.md'), 'utf8');

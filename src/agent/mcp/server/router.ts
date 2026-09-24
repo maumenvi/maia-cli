@@ -2,7 +2,9 @@ import type { AgentCatalogStore } from '../../catalog/store/agent.catalog.store.
 import { canLlmAccessResource } from '../../access/policy/can.llm.access.resource.ts';
 import { AgentMcpManager } from '../manager/manager/agent.mcp.manager.ts';
 import type { McpCallToolResult } from '../runtime/protocol/json-rpc/mcp.call.tool.result.ts';
+import { MAIA_TOOLKITS_TOOL_NAME } from './collect/maia.toolkits.tool.name.ts';
 import type { McpToolEntry } from './contracts/mcp.tool.entry.ts';
+import { describeToolkits } from './describe.toolkits.ts';
 
 /**
  * Route a tool call to its origin package.
@@ -19,6 +21,11 @@ export async function routeToolCall(
   agentId?: string,
   tools: McpToolEntry[] = [],
 ): Promise<McpCallToolResult> {
+  // Reserved name: always the built-in toolkit query, never a same-named package.
+  if (toolName === MAIA_TOOLKITS_TOOL_NAME) {
+    return describeToolkits(catalog, args.name);
+  }
+
   // MCP proxied tool. The exposed name is sanitized for the agent identifier
   // charset, so it cannot be split back into the real server id; the entry's
   // `origin` carries that id and is the authoritative mapping.

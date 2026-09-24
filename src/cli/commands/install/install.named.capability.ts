@@ -3,6 +3,7 @@ import path from 'node:path';
 import { searchCatalog } from '../../../agent/catalog/providers/core/search.catalog.ts';
 import { findRegistryEntry } from '../../../agent/catalog/registry/read/find.registry.entry.ts';
 import type { AgentCatalogStore } from '../../../agent/catalog/store/agent.catalog.store.ts';
+import { MAIA_TOOLKITS_TOOL_NAME } from '../../../agent/mcp/server/collect/maia.toolkits.tool.name.ts';
 import { bestCatalogMatch } from '../../install/external/best.catalog.match.ts';
 import { installCatalogResult } from '../../install/external/install.catalog.result.ts';
 import { createMcpConfig } from '../../install/mcp/create.mcp.config.ts';
@@ -27,6 +28,9 @@ export async function installNamedCapability(
   const name = positional[1];
   if (!name) {
     throw new Error(`Usage: maia i ${kind} <name> [--version <range>] [--source <alias>]`);
+  }
+  if (name === MAIA_TOOLKITS_TOOL_NAME) {
+    throw new Error(`"${MAIA_TOOLKITS_TOOL_NAME}" is a reserved name`);
   }
 
   const version = flags.version ?? '*';

@@ -2,6 +2,7 @@ import { canLlmAccessResource } from '../../../access/policy/can.llm.access.reso
 import type { AgentCatalogStore } from '../../../catalog/store/agent.catalog.store.ts';
 import type { McpToolEntry } from '../contracts/mcp.tool.entry.ts';
 import { DEFAULT_SCHEMA } from './default.schema.ts';
+import { MAIA_TOOLKITS_TOOL_NAME } from './maia.toolkits.tool.name.ts';
 
 /** Collect tools exposed by skill and tool packages (no subprocess needed). */
 export function collectLocalEntries(catalog: AgentCatalogStore, agentId?: string): McpToolEntry[] {
@@ -9,6 +10,10 @@ export function collectLocalEntries(catalog: AgentCatalogStore, agentId?: string
 
   for (const pkg of catalog.getInstalledPackages()) {
     if (!pkg.enabled) continue;
+    if (pkg.name === MAIA_TOOLKITS_TOOL_NAME) {
+      console.error(`maia: ignoring ${pkg.type} "${pkg.name}": the name is reserved`);
+      continue;
+    }
     if (!canLlmAccessResource(
       agentId,
       pkg.type,

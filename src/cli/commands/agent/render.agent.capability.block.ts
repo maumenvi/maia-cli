@@ -3,6 +3,7 @@ import path from 'node:path';
 import type { AgentTarget } from '../../../agent/agents/contracts/agent.target.ts';
 import { resolveAuthorizedPackages } from '../../../agent/agents/profiles/resolve.authorized.packages.ts';
 import type { AgentCatalogStore } from '../../../agent/catalog/store/agent.catalog.store.ts';
+import { findToolkit } from '../../../agent/toolkits/catalog/find.toolkit.ts';
 
 /** Opening marker of Maia's managed capability block in an agent instruction file. */
 export const CAPABILITY_BLOCK_START = '<!-- maia:capabilities:start -->';
@@ -27,6 +28,11 @@ export function renderAgentCapabilityBlock(store: AgentCatalogStore, target: Age
       return `- \`${pkg.name}\`${location}`;
     })
     : ['- _none authorized_'];
+  const toolkitLines = Object.values(store.loadLock()?.toolkits ?? {}).map((toolkit) => {
+    const docsUrl = findToolkit(toolkit.name, store.getToolkitCatalog())?.docsUrl;
+    const docs = docsUrl ? ` — docs: ${docsUrl}` : '';
+    return `- \`${toolkit.name}\` ${toolkit.version} (${toolkit.scope})${docs}; details via the \`maia_toolkits\` MCP tool`;
+  });
 
   const lines = [
     CAPABILITY_BLOCK_START,
@@ -50,6 +56,9 @@ export function renderAgentCapabilityBlock(store: AgentCatalogStore, target: Age
     ...(tools.length > 0
       ? tools.map((pkg) => `- \`${pkg.name}\``)
       : ['- _none authorized_']),
+    '',
+    '### Toolkits',
+    ...(toolkitLines.length > 0 ? toolkitLines : ['- _none installed_']),
     '',
     CAPABILITY_BLOCK_END,
   ];

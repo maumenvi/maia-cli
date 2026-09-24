@@ -61,6 +61,10 @@ describe('maia toolkit i', () => {
     assert.ok(logs.some((line) => line.startsWith('Will run: uvx --from')));
     assert.ok(logs.includes('Source: https://github.com/github/spec-kit@v1.0.11'));
     assert.equal(io.questions.length, 0);
+    assert.match(
+      readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8'),
+      /- `speckit` 1\.0\.11 \(project\) — docs: https:\/\/github\.github\.com\/spec-kit\/installation\.html; details via the `maia_toolkits` MCP tool/,
+    );
   }, { agents: ['claude', 'codex'] }));
 
   it('treats install as an alias of i', () => withProject(async ({ store, run }) => {
