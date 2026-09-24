@@ -131,6 +131,17 @@ describe('maia ci with toolkits', () => {
     await assert.rejects(ci(), /Toolkit speckit failed during ci: exit 1/);
     assert.equal(existsSync(path.join(dir, '.specify')), false);
   }, { failOn: (command) => (command.args.includes('init') ? 1 : undefined) }));
+
+  it('installs only the global tool when that is what is missing', () => withDeclaredToolkit(async ({ dir, io, ci }) => {
+    writeProjectVersion(dir, '1.0.11');
+    await ci();
+    assert.deepEqual(io.executed().map((line) => line.split(' ').slice(0, 2).join(' ')), ['uv tool']);
+  }, { scope: 'global' }));
+
+  it('only initializes the project when the global tool is ready', () => withDeclaredToolkit(async ({ io, ci }) => {
+    await ci();
+    assert.deepEqual(io.executed().map((line) => line.split(' ').slice(0, 2).join(' ')), ['specify init']);
+  }, { scope: 'global', globalVersion: '1.0.11' }));
 });
 
 describe('maia verify with toolkits', () => {

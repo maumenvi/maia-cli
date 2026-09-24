@@ -169,3 +169,35 @@ describe('maia toolkit i', () => {
     await assert.rejects(run(['bogus']), /Usage: maia toolkit i\|install\|ls\|rm/);
   }));
 });
+
+describe('maia toolkit i -g', () => {
+  it('installs the global tool and then initializes the project', () => withProject(async ({ store, io, logs, run }) => {
+    await run(['i', 'speckit', '-g', '-y']);
+    assert.deepEqual(io.executed(), [
+      `uv tool install specify-cli --force --from ${SOURCE}`,
+      'specify init --here --force --non-interactive --ignore-agent-tools --script sh --integration claude',
+    ]);
+    assert.deepEqual(store.loadManifest().toolkits.speckit, { version: '1.0.11', scope: 'global' });
+    assert.equal(store.loadLock()?.toolkits?.speckit?.scope, 'global');
+    assert.ok(logs.includes('Installed toolkit:speckit@1.0.11 (global)'));
+  }, { agents: ['claude'] }));
+
+  it('accepts --global and skips the tool install when it is already at the version', () => withProject(async ({ io, run }) => {
+    await run(['i', 'speckit', '--global', '-y']);
+    assert.deepEqual(io.executed().map((line) => line.split(' ')[0]), ['specify']);
+  }, { globalVersion: '1.0.11' }));
+
+  it('ignores -g with a warning when the toolkit has no global mode', async () => {
+    const fake = { ...SPECKIT_TOOLKIT, name: 'fake', supportsGlobal: false };
+    await withProject(async ({ store, io, logs, run }) => {
+      await run(['i', 'fake', '-g', '-y']);
+      assert.ok(logs.includes('warning: fake does not support global installation; installing in the project'));
+      assert.ok(io.executed()[0].startsWith('uvx '));
+      assert.deepEqual(store.loadManifest().toolkits.fake, { version: '1.0.11', scope: 'project' });
+    }, { catalog: [fake] });
+  });
+
+  it('reports the global uninstall hint when init fails after the tool was installed', () => withProject(async ({ run }) => {
+    await assert.rejects(run(['i', 'speckit', '-g', '-y']), /Global tool kept; to uninstall: uv tool uninstall specify-cli/);
+  }, { failOn: (command) => (command.args.includes('init') ? 1 : undefined) }));
+});
