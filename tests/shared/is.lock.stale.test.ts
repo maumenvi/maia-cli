@@ -90,4 +90,14 @@ describe('isLockStale', () => {
 
     assert.equal(isLockStale(onDisk, withOtherSource), true);
   });
+  it('reports a toolkit version difference as stale and treats a missing section as empty', () => {
+    const toolkit = {
+      name: 'speckit', version: '1.0.11', scope: 'project' as const, source: 'https://github.com/github/spec-kit',
+      ref: 'v1.0.11', integrations: ['claude'], paths: ['.specify'],
+    };
+    const onDisk = { ...buildLock({}), lockfileVersion: 2, toolkits: { speckit: toolkit } };
+    const regenerated = { ...buildLock({}), lockfileVersion: 2, toolkits: { speckit: { ...toolkit, version: '1.0.10' } } };
+    assert.equal(isLockStale(onDisk, regenerated), true);
+    assert.equal(isLockStale(buildLock({}), { ...buildLock({}), toolkits: {} }), false);
+  });
 });

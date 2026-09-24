@@ -26,6 +26,9 @@ import { safeParseJson } from '../shared/json.ts';
 import type { McpDependency } from '../types/dependencies/mcp.dependency.ts';
 import type { SkillDependency } from '../types/dependencies/skill.dependency.ts';
 import type { ToolDependency } from '../types/dependencies/tool.dependency.ts';
+import type { ToolkitDependency } from '../types/dependencies/toolkit.dependency.ts';
+import type { ToolkitDefinition } from '../../toolkits/contracts/toolkit.definition.ts';
+import { TOOLKIT_CATALOG } from '../../toolkits/catalog/toolkit.catalog.ts';
 import type { CatalogKind } from '../types/kinds.ts';
 import type { LockPackage } from '../types/lock/lock.package.ts';
 import type { SourceLock } from '../types/lock/source.lock.ts';
@@ -36,10 +39,17 @@ import type { CatalogStoreOptions } from '../types/store/catalog.store.options.t
 /** Coordinates the agent catalog store behavior. */
 export class AgentCatalogStore {
   private readonly paths;
+  private readonly toolkitCatalog: readonly ToolkitDefinition[];
 
   /** Initializes a new AgentCatalogStore instance. */
   constructor(options: CatalogStoreOptions = {}) {
     this.paths = resolveCatalogPaths(options);
+    this.toolkitCatalog = options.toolkitCatalog ?? TOOLKIT_CATALOG;
+  }
+
+  /** Returns the toolkit catalog this store resolves toolkits against. */
+  getToolkitCatalog(): readonly ToolkitDefinition[] {
+    return this.toolkitCatalog;
   }
 
   /** Performs the get paths operation. */
@@ -140,6 +150,21 @@ export class AgentCatalogStore {
     this.saveManifest(manifest);
   }
 
+  /** Declares (or replaces) a toolkit in the manifest. */
+  setToolkit(name: string, dependency: ToolkitDependency): void {
+    const manifest = this.loadManifest();
+    manifest.toolkits = { ...manifest.toolkits, [name]: dependency };
+    this.saveManifest(manifest);
+  }
+
+  /** Removes a toolkit from the manifest. */
+  removeToolkit(name: string): void {
+    const manifest = this.loadManifest();
+    const { [name]: _removed, ...rest } = manifest.toolkits;
+    manifest.toolkits = rest;
+    this.saveManifest(manifest);
+  }
+
   /** Performs the remove dependency operation. */
   removeDependency(kind: CatalogKind, name: string): void {
     const manifest = this.loadManifest();
@@ -157,7 +182,7 @@ export class AgentCatalogStore {
 
   /** Performs the build lock operation. */
   buildLock(): SourceLock {
-    const lock = buildLockFromManifest(this.loadManifest(), this.paths.stateDir);
+    const lock = buildLockFromManifest(this.loadManifest(), this.paths.stateDir, this.toolkitCatalog);
     this.saveLock(lock);
     return lock;
   }

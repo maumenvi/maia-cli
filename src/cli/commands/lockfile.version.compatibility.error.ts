@@ -6,17 +6,17 @@
  */
 export class LockfileVersionCompatibilityError extends Error {
   readonly lockfileVersion: number;
-  readonly supportedVersion: number;
+  readonly supportedVersions: readonly number[];
 
   /** Builds the error message from the lockfile's version and the CLI's supported version. */
-  constructor(lockfileVersion: number, supportedVersion: number) {
+  constructor(lockfileVersion: number, supportedVersions: readonly number[]) {
     super(
       `Lockfile version ${lockfileVersion} is incompatible with the version this CLI `
-      + `supports (${supportedVersion}). Migrate maia.lock.json or use a compatible `
+      + `supports (${supportedVersions.join(', ')}). Migrate maia.lock.json or use a compatible `
       + 'maia CLI version.',
     );
     this.name = 'LockfileVersionCompatibilityError';
     this.lockfileVersion = lockfileVersion;
-    this.supportedVersion = supportedVersion;
+    this.supportedVersions = supportedVersions;
   }
 }

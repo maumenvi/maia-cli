@@ -18,5 +18,5 @@ export function lockComparableProjection(lock: SourceLock): LockComparableProjec
     packages[id] = comparable;
   }
 
-  return { name: lock.name, sources: lock.sources, packages };
+  return { name: lock.name, sources: lock.sources, packages, toolkits: lock.toolkits ?? {} };
 }

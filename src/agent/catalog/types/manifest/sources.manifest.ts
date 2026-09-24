@@ -1,5 +1,6 @@
 import type { McpDependency } from '../dependencies/mcp.dependency.ts';
 import type { SkillDependency } from '../dependencies/skill.dependency.ts';
+import type { ToolkitDependency } from '../dependencies/toolkit.dependency.ts';
 import type { ToolDependency } from '../dependencies/tool.dependency.ts';
 import type { CatalogSource } from '../source/catalog.source.ts';
 import type { AgentManifestEntry } from './agent.manifest.entry.ts';
@@ -20,5 +21,6 @@ export interface SourcesManifest {
   skills: Record<string, SkillDependency>;
   mcps: Record<string, McpDependency>;
   tools: Record<string, ToolDependency>;
+  toolkits: Record<string, ToolkitDependency>;
   agents: Record<string, AgentManifestEntry>;
 }
