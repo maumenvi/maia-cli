@@ -7,12 +7,13 @@
 
 O Maia é a forma mais rápida de transformar o uso de agentes em um fluxo repetível e pronto para produção.
 
-Em vez de configurar cada cliente manualmente, procurar arquivos de configuração, duplicar integrações e manter setups isolados para Claude, Copilot, Cursor, Zed, Cline e Continue, o Maia oferece uma camada única de controle para descobrir, instalar e expor skills, MCPs e tools dentro do seu projeto.
+Em vez de configurar cada cliente manualmente, procurar arquivos de configuração, duplicar integrações e manter setups isolados para Claude, Copilot, Cursor, Zed, Cline e Continue, o Maia oferece uma camada única de controle para descobrir, instalar e expor skills, MCPs e tools dentro do seu projeto — e para adotar toolkits completos de fluxo de trabalho com agentes, como o GitHub Spec Kit.
 
 Com poucos comandos, você pode:
 
 - inicializar uma estrutura pronta para agentes;
 - instalar e organizar skills, MCPs e tools;
+- instalar toolkits de fluxo de trabalho (como o GitHub Spec Kit) com um único comando, já ligados aos seus agentes;
 - expor tudo por meio de um único MCP server;
 - conectar um ou vários agentes ao mesmo projeto;
 - reduzir a fricção de setup e acelerar a adoção de AI no time.
@@ -26,6 +27,7 @@ Porque trabalhar com agentes em projetos reais não deveria significar configura
 O Maia resolve isso ao oferecer:
 
 - um único fluxo para instalar e organizar skills, MCPs e tools;
+- toolkits instalados de forma nativa pelos próprios instaladores, mas registrados no mesmo manifesto e lock, para que `maia i` / `maia ci` deem a todo o time o mesmo fluxo de trabalho;
 - um MCP server central para expor as capacidades instaladas;
 - configuração automática para diferentes agentes e editores;
 - onboarding mais rápido para times inteiros;
@@ -42,6 +44,7 @@ Isso significa que este repositório é centrado em:
 - inicialização do projeto com skills, tools e estado MCP centralizados em `.maia/`;
 - configuração de um ou vários agentes/editores;
 - instalação guiada por catálogo com fluxos de lock e verify;
+- instalação de toolkits delegada ao instalador nativo de cada um;
 - um MCP server embutido que expõe as capacidades instaladas.
 
 Se uma funcionalidade não apoiar diretamente esse fluxo de CLI, ela não deve estar neste repositório.
@@ -51,7 +54,7 @@ Se uma funcionalidade não apoiar diretamente esse fluxo de CLI, ela não deve e
 O Maia é útil em cenários como:
 
 - times que querem padronizar o uso de agentes entre Claude, Copilot, Cursor e outros clientes;
-- projetos que precisam distribuir o mesmo conjunto de skills e MCPs para vários desenvolvedores;
+- projetos que precisam distribuir o mesmo conjunto de skills, MCPs e toolkits (como um fluxo de spec-driven development) para vários desenvolvedores;
 - ambientes em que agentes precisam acessar ferramentas reais do projeto sem configuração manual repetitiva;
 - laboratórios e times de produto que querem comparar rapidamente diferentes agentes sobre a mesma base operacional;
 - organizações que precisam de um ponto central para governar capacidades, acesso e integrações de AI.
@@ -91,7 +94,7 @@ O Maia é útil em cenários como:
   - [Instalação estilo npm](#instalação-estilo-npm)
   - [Lock e contexto](#lock-e-contexto)
   - [Outros comandos](#outros-comandos)
-- [Documentação em `/doc`](#documentação-em-doc)
+- [Mais documentação](#mais-documentação)
 
 ## Requisitos
 
@@ -128,6 +131,7 @@ maia list-tools
 maia list-tools react
 maia skills find react
 maia mcp find filesystem
+maia toolkit i speckit
 maia lock
 maia verify
 ```
@@ -155,11 +159,6 @@ Resultado típico:
 - cada agente selecionado também é integrado nativamente: os MCPs instalados são registrados individualmente no config MCP do próprio agente, ao lado do proxy `maia`; as skills autorizadas são copiadas para a pasta nativa quando houver suporte (ex.: `.claude/skills/`) e, caso contrário, ficam disponíveis pelo MCP Maia; e um bloco gerenciado `maia:capabilities` é inserido/atualizado no arquivo de instruções do agente (`CLAUDE.md`, `.github/copilot-instructions.md`, `AGENTS.md`, …);
 - skills, MCPs e tools instalados ficam mais fáceis de versionar, compartilhar e reproduzir.
 
-Atualizar o CLI local neste repositório:
-
-```bash
-maia-update-local /home/marco/Documentos/projetos/maia-cli
-```
 
 ## Catálogos e credenciais
 
@@ -349,11 +348,12 @@ maia rm <skill|mcp|tool> <name>
 maia version
 ```
 
-## Documentação em `/doc`
+## Mais documentação
 
-- [Arquitetura do código-fonte](./doc/architecture.md)
-- [Avaliação técnica atualizada](./doc/avaliação.md)
-- [Pendências restantes](./doc/falta.md)
+- [Arquitetura do código-fonte e regras de desenvolvimento](./AGENT.md)
+- [Política de segurança e confiança](./SECURITY.md)
+- [Changelog](./CHANGELOG.md)
+- [Especificações, planos e tarefas das features](./specs/)
 
 ## Guardrails para ações destrutivas
 

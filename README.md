@@ -7,7 +7,7 @@ English | [Português](./README.pt-BR.md)
 
 Maia is the fastest way to turn agent tooling into a repeatable, production-ready workflow.
 
-Instead of manually wiring every client, hunting down config files, duplicating integrations, and maintaining isolated setups for Claude, Copilot, Cursor, Zed, Cline, and Continue, Maia gives you a single control layer for discovering, installing, and exposing skills, MCPs, and tools across your project.
+Instead of manually wiring every client, hunting down config files, duplicating integrations, and maintaining isolated setups for Claude, Copilot, Cursor, Zed, Cline, and Continue, Maia gives you a single control layer for discovering, installing, and exposing skills, MCPs, and tools across your project — and for adopting complete agent workflow toolkits such as the GitHub Spec Kit.
 
 **Maia is now a CLI-only project.** This repository is intentionally focused on the command-line workflow for bootstrapping agent-ready projects, managing capability catalogs, and exposing them through a built-in MCP server. It is not a general SDK, HTTP framework, or pipeline engine.
 
@@ -15,6 +15,7 @@ With just a few commands, you can:
 
 - initialize an agent-ready project structure;
 - install and organize skills, MCPs, and tools;
+- install agent workflow toolkits (such as the GitHub Spec Kit) with one command, wired to your agents;
 - expose everything through one MCP server;
 - connect one or many agents to the same project;
 - reduce setup friction and accelerate AI adoption for your team.
@@ -28,6 +29,7 @@ Because working with agents in real projects should not mean manually configurin
 Maia solves that by providing:
 
 - one workflow to install and organize skills, MCPs, and tools;
+- toolkits installed natively by their own installers but tracked in the same manifest and lock, so `maia i` / `maia ci` give every developer the same workflow;
 - one central MCP server to expose installed capabilities;
 - automatic setup for different agents and editors;
 - faster onboarding for entire teams;
@@ -44,6 +46,7 @@ That means this repository is centered on:
 - project initialization with centralized `.maia/skills`, `.maia/tools`, and MCP state;
 - agent/editor setup for one or many clients;
 - catalog-driven installation and lock/verify workflows;
+- toolkit installation that delegates to each toolkit's native installer;
 - a built-in MCP server that exposes installed capabilities.
 
 If a feature does not support that CLI workflow directly, it does not belong in this repository.
@@ -53,7 +56,7 @@ If a feature does not support that CLI workflow directly, it does not belong in 
 Maia is useful in scenarios such as:
 
 - teams standardizing agent usage across Claude, Copilot, Cursor, and other clients;
-- projects that need to distribute the same set of skills and MCPs to multiple developers;
+- projects that need to distribute the same set of skills, MCPs, and toolkits (such as a spec-driven workflow) to multiple developers;
 - environments where agents must access real project tooling without repeated manual setup;
 - product teams and labs comparing multiple agents over the same operational stack;
 - organizations that need a central point to govern AI capabilities, access, and integrations.
@@ -93,7 +96,7 @@ Maia is useful in scenarios such as:
   - [npm-style installation](#npm-style-installation)
   - [Lock and context](#lock-and-context)
   - [Other commands](#other-commands)
-- [Documentation in `/doc`](#documentation-in-doc)
+- [Further documentation](#further-documentation)
 
 ## Requirements
 
@@ -130,6 +133,7 @@ maia list-tools
 maia list-tools react
 maia skills find react
 maia mcp find filesystem
+maia toolkit i speckit
 maia lock
 maia verify
 ```
@@ -190,11 +194,6 @@ Typical result:
 - each selected agent is also wired natively: installed MCP servers are registered individually in the agent's own MCP config next to the `maia` proxy, authorized skills are copied into the agent's native skills directory when supported (for example `.claude/skills/`), and otherwise remain available through the Maia MCP server; a managed `maia:capabilities` block is upserted into the agent's instruction file (`CLAUDE.md`, `.github/copilot-instructions.md`, `AGENTS.md`, …);
 - installed skills, MCPs, and tools become easier to version, share, and reproduce.
 
-Update the local CLI in this repository:
-
-```bash
-maia-update-local /home/marco/Documentos/projetos/maia-cli
-```
 
 ## Catalogs and credentials
 
@@ -384,8 +383,9 @@ maia rm <skill|mcp|tool> <name>
 maia version
 ```
 
-## Documentation in `/doc`
+## Further documentation
 
-- [Source architecture](./doc/architecture.md)
-- [Updated technical assessment](./doc/avaliação.md)
-- [Open follow-up items](./doc/falta.md)
+- [Source architecture and development rules](./AGENT.md)
+- [Security and trust policy](./SECURITY.md)
+- [Changelog](./CHANGELOG.md)
+- [Feature specifications, plans and tasks](./specs/)
