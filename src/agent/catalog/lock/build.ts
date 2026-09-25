@@ -1,3 +1,6 @@
+import { TOOLKIT_CATALOG } from '../../toolkits/catalog/toolkit.catalog.ts';
+import type { ToolkitDefinition } from '../../toolkits/contracts/toolkit.definition.ts';
+import { buildToolkitLockEntries } from '../../toolkits/lock/build.toolkit.lock.entries.ts';
 import { resolveSourceCommit } from '../manifest/source-hash/resolve.source.commit.ts';
 import { findRegistryEntry } from '../registry/read/find.registry.entry.ts';
 import { packageKey } from '../shared/hash/package.key.ts';
@@ -8,7 +11,11 @@ import type { SourcesManifest } from '../types/manifest/sources.manifest.ts';
 import { createPackageDescriptor } from './package.descriptor.ts';
 
 /** Performs the build lock from manifest operation. */
-export function buildLockFromManifest(manifest: SourcesManifest, workspaceRoot = process.cwd()): SourceLock {
+export function buildLockFromManifest(
+  manifest: SourcesManifest,
+  workspaceRoot = process.cwd(),
+  toolkitCatalog: readonly ToolkitDefinition[] = TOOLKIT_CATALOG,
+): SourceLock {
   const defaultAccessPolicy = manifest.config.llmAccessDefault;
   const strictVerify = manifest.config.strictVerify;
   const referencedSources = new Set([
@@ -56,10 +63,17 @@ export function buildLockFromManifest(manifest: SourcesManifest, workspaceRoot =
   buildPackagesForKind('mcp');
   buildPackagesForKind('tool');
 
+  const agentIds = Object.keys(manifest.agents ?? {}).filter((id) => manifest.agents[id]?.enabled !== false);
+  const toolkits = buildToolkitLockEntries(manifest.toolkits ?? {}, agentIds, toolkitCatalog);
+  const hasToolkits = Object.keys(toolkits).length > 0;
+
+  // Version 2 only when toolkits exist: an older CLI then fails loudly
+  // instead of silently skipping them, while toolkit-free locks keep v1.
   return {
     name: manifest.name,
-    lockfileVersion: 1,
+    lockfileVersion: hasToolkits ? 2 : 1,
     sources,
     packages,
+    ...(hasToolkits ? { toolkits } : {}),
   };
 }

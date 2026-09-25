@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.6.0]
 
+## [1.6.1] - 2026-09-24
+
+### Added
+- Toolkits: `maia toolkit i|install <name> [-g] [--version <x.y.z>] [-y]`, `maia toolkit ls`
+  and `maia toolkit rm`, starting with the GitHub Spec Kit (`speckit`). Toolkits are installed
+  by their native installer, recorded in `maia.json`/`maia.lock.json`, restored by `maia i`
+  and `maia ci`, checked by `maia verify` (presence and version), and described by the
+  read-only `maia_toolkits` MCP tool and a `### Toolkits` section in agent instructions.
+- Single-letter boolean flags (`-g`, `-y`) with long forms `--global` and `--yes`.
+
+### Changed
+- `maia.lock.json` uses `lockfileVersion: 2` when it pins toolkits; lockfiles without toolkits
+  stay at version 1. The CLI accepts both.
+
+### Fixed
+- README and AGENT.md links to the removed `doc/` folder now point to existing documentation.
+
+## [1.6.0] - 2026-09-23
+
 ### Added
 - **MCP server and runtime security** (feature 005):
   - the stdio MCP server rejects an `initialize` that declares an unsupported protocol

@@ -7,12 +7,13 @@
 
 O Maia é a forma mais rápida de transformar o uso de agentes em um fluxo repetível e pronto para produção.
 
-Em vez de configurar cada cliente manualmente, procurar arquivos de configuração, duplicar integrações e manter setups isolados para Claude, Copilot, Cursor, Zed, Cline e Continue, o Maia oferece uma camada única de controle para descobrir, instalar e expor skills, MCPs e tools dentro do seu projeto.
+Em vez de configurar cada cliente manualmente, procurar arquivos de configuração, duplicar integrações e manter setups isolados para Claude, Copilot, Cursor, Zed, Cline e Continue, o Maia oferece uma camada única de controle para descobrir, instalar e expor skills, MCPs e tools dentro do seu projeto — e para adotar toolkits completos de fluxo de trabalho com agentes, como o GitHub Spec Kit.
 
 Com poucos comandos, você pode:
 
 - inicializar uma estrutura pronta para agentes;
 - instalar e organizar skills, MCPs e tools;
+- instalar toolkits de fluxo de trabalho (como o GitHub Spec Kit) com um único comando, já ligados aos seus agentes;
 - expor tudo por meio de um único MCP server;
 - conectar um ou vários agentes ao mesmo projeto;
 - reduzir a fricção de setup e acelerar a adoção de AI no time.
@@ -26,6 +27,7 @@ Porque trabalhar com agentes em projetos reais não deveria significar configura
 O Maia resolve isso ao oferecer:
 
 - um único fluxo para instalar e organizar skills, MCPs e tools;
+- toolkits instalados de forma nativa pelos próprios instaladores, mas registrados no mesmo manifesto e lock, para que `maia i` / `maia ci` deem a todo o time o mesmo fluxo de trabalho;
 - um MCP server central para expor as capacidades instaladas;
 - configuração automática para diferentes agentes e editores;
 - onboarding mais rápido para times inteiros;
@@ -42,6 +44,7 @@ Isso significa que este repositório é centrado em:
 - inicialização do projeto com skills, tools e estado MCP centralizados em `.maia/`;
 - configuração de um ou vários agentes/editores;
 - instalação guiada por catálogo com fluxos de lock e verify;
+- instalação de toolkits delegada ao instalador nativo de cada um;
 - um MCP server embutido que expõe as capacidades instaladas.
 
 Se uma funcionalidade não apoiar diretamente esse fluxo de CLI, ela não deve estar neste repositório.
@@ -51,7 +54,7 @@ Se uma funcionalidade não apoiar diretamente esse fluxo de CLI, ela não deve e
 O Maia é útil em cenários como:
 
 - times que querem padronizar o uso de agentes entre Claude, Copilot, Cursor e outros clientes;
-- projetos que precisam distribuir o mesmo conjunto de skills e MCPs para vários desenvolvedores;
+- projetos que precisam distribuir o mesmo conjunto de skills, MCPs e toolkits (como um fluxo de spec-driven development) para vários desenvolvedores;
 - ambientes em que agentes precisam acessar ferramentas reais do projeto sem configuração manual repetitiva;
 - laboratórios e times de produto que querem comparar rapidamente diferentes agentes sobre a mesma base operacional;
 - organizações que precisam de um ponto central para governar capacidades, acesso e integrações de AI.
@@ -84,13 +87,14 @@ O Maia é útil em cenários como:
   - [Skills](#skills)
   - [MCP](#mcp)
   - [Credenciais MCP](#credenciais-mcp)
+- [Toolkits](#toolkits)
 - [Segurança e confiança das fontes](#segurança-e-confiança-das-fontes)
 - [Referência de comandos](#referência-de-comandos)
   - [Bootstrap do catálogo](#bootstrap-do-catálogo)
   - [Instalação estilo npm](#instalação-estilo-npm)
   - [Lock e contexto](#lock-e-contexto)
   - [Outros comandos](#outros-comandos)
-- [Documentação complementar](#documentação-complementar)
+- [Mais documentação](#mais-documentação)
 
 ## Requisitos
 
@@ -127,6 +131,7 @@ maia list-tools
 maia list-tools react
 maia skills find react
 maia mcp find filesystem
+maia toolkit i speckit
 maia lock
 maia verify
 ```
@@ -153,6 +158,7 @@ Resultado típico:
 - cada agente selecionado recebe um endpoint MCP identificado e um perfil de autorização em `.maia/agents/<id>/`;
 - cada agente selecionado também é integrado nativamente: o proxy `maia` é registrado no config MCP do próprio agente e os MCPs instalados são alcançados através dele; as skills autorizadas são copiadas para a pasta nativa quando houver suporte (ex.: `.claude/skills/`); e um bloco gerenciado `maia:capabilities` é inserido/atualizado no arquivo de instruções do agente (`CLAUDE.md`, `.github/copilot-instructions.md`, `AGENTS.md`, …);
 - skills, MCPs e tools instalados ficam mais fáceis de versionar, compartilhar e reproduzir.
+
 
 ## Catálogos e credenciais
 
@@ -212,9 +218,41 @@ O `configureAgents` grava o proxy `maia` e as capacidades autorizadas nos locais
 
 Somente as capacidades autorizadas para o agente (via `allowedLlms` / `llmAccessDefault`) são entregues, e o bloco de instruções fica entre os marcadores `<!-- maia:capabilities:start -->` / `<!-- maia:capabilities:end -->`, de modo que reexecuções nunca duplicam nem sobrescrevem o seu conteúdo.
 
-O config MCP recebe **apenas** o proxy `maia` — os MCPs instalados não são gravados nele individualmente. Uma entrada direta seria iniciada pelo próprio agente, que não carrega o `.maia/mcp.env` e portanto não resolve os placeholders `${env:...}` de que as credenciais dependem, nem herda o shell onde o runtime do servidor é resolvível. Passar pelo proxy mantém a resolução de credenciais, a autorização por agente e o liga/desliga num lugar só: o MCP é declarado uma vez no `maia.json`, e o config do agente apenas aponta para `maia mcp-server --agent <id>`.
+## Toolkits
 
-As ferramentas proxiadas são expostas como `<servidor>__<ferramenta>` — por exemplo `context7__query-docs`. O nome é saneado para o charset de identificador que os agentes aceitam, já que ids de registro trazem pontos e barras que falham na validação do cliente.
+Um **toolkit** é um fluxo de trabalho para agentes, de terceiros, com instalador próprio,
+como o [GitHub Spec Kit](https://github.com/github/spec-kit). O Maia não copia os arquivos do
+toolkit: ele executa o **instalador nativo** (sem shell, só argv), direcionado aos agentes do
+`maia.json`, e registra o resultado no `maia.json` e no `maia.lock.json` para que todo o time
+tenha o mesmo ambiente.
+
+```bash
+maia toolkit i speckit                    # última release estável, neste projeto
+maia toolkit install speckit --version 1.0.11
+maia toolkit i speckit -g                 # instala a ferramenta globalmente e inicializa este projeto
+maia toolkit ls [--json]
+maia toolkit rm speckit                   # pergunta se deve apagar os arquivos do toolkit
+```
+
+- Antes de executar qualquer coisa, o Maia mostra os comandos nativos exatos e a origem e pede
+  confirmação (`-y` pula). Os pré-requisitos são checados antes (o Spec Kit precisa de
+  [`uv`](https://docs.astral.sh/uv/) e Git).
+- `-g` só vale quando o toolkit suporta instalação global; caso contrário o Maia avisa e instala
+  no projeto como se `-g` não tivesse sido informado.
+- Agentes que o toolkit não consegue combinar são pulados com aviso (as integrações `copilot` e
+  `zed` do Spec Kit não coexistem com outras).
+- `maia i` e `maia ci` instalam toolkits ausentes sem perguntar, na versão travada. Um toolkit
+  presente em **outra** versão faz o comando falhar em vez de sobrescrever suas edições; troque
+  de versão explicitamente com `maia toolkit i <nome> --version <x>`.
+- `maia verify` confere toolkits por presença e versão (não por hash, já que os arquivos são
+  feitos para serem editados).
+- O servidor MCP do Maia expõe a ferramenta somente leitura `maia_toolkits` (o que cada toolkit
+  faz, versão, escopo, caminhos, docs). Ela nunca instala nada.
+- `maia toolkit rm` remove o toolkit do `maia.json`/`maia.lock.json` e só apaga arquivos com
+  confirmação explícita, passando pelos guardrails. Uma ferramenta global nunca é desinstalada.
+
+Um lockfile com toolkits usa `lockfileVersion: 2`, para que versões antigas do Maia falhem em
+vez de ignorá-los. Projetos sem toolkits continuam com `lockfileVersion: 1`.
 
 ## Segurança e confiança das fontes
 
@@ -293,7 +331,15 @@ maia context show --for llm
 
 Novos manifests ativam `strictVerify` por padrão. O `maia ci` valida os metadados e a integridade do lock antes de escrever arquivos, restaura os artefatos travados e então verifica seus hashes.
 
-### Descoberta e listagem
+### Toolkits
+
+```bash
+maia toolkit i|install <nome> [-g|--global] [--version <x.y.z>] [-y|--yes]
+maia toolkit ls|list [--json]
+maia toolkit rm|remove <nome> [-y|--yes]
+```
+
+### Outros comandos
 
 ```bash
 maia ls [skill|mcp|tool]
@@ -326,16 +372,12 @@ maia guardrail check <caminho...>
 maia version
 ```
 
-`maia up` é alias de `maia lock`.
+## Mais documentação
 
-## Documentação complementar
-
-- [Política de segurança e confiança](./SECURITY.md) — garantias de runtime e seus limites conhecidos
-- [Referência de integração com agentes](./AGENT.md) — como cada agente é configurado
+- [Arquitetura do código-fonte e regras de desenvolvimento](./AGENT.md)
+- [Política de segurança e confiança](./SECURITY.md)
 - [Changelog](./CHANGELOG.md)
-
-As especificações de feature ficam em [`specs/`](./specs/), um diretório por feature, cada
-um com spec, plano, pesquisa, modelo de dados, contratos e quebra de tarefas.
+- [Especificações, planos e tarefas das features](./specs/)
 
 ## Guardrails para ações destrutivas
 

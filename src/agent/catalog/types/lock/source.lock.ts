@@ -1,5 +1,6 @@
 import type { CatalogSource } from '../source/catalog.source.ts';
 import type { LockPackage } from './lock.package.ts';
+import type { LockToolkit } from './lock.toolkit.ts';
 
 /**
  * Describes the source lock contract. Deliberately carries no generation
@@ -12,4 +13,6 @@ export interface SourceLock {
   lockfileVersion: number;
   sources: Record<string, CatalogSource & { commit: string; commitResolved?: boolean }>;
   packages: Record<string, LockPackage>;
+  /** Present only when the manifest declares toolkits; its presence bumps `lockfileVersion` to 2. */
+  toolkits?: Record<string, LockToolkit>;
 }

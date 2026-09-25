@@ -19,5 +19,6 @@ export const normalizeManifest = (parsed: LegacySourcesManifest): SourcesManifes
   skills: { ...(parsed.skills ?? {}) },
   mcps: { ...(parsed.mcps ?? {}) },
   tools: { ...(parsed.tools ?? {}) },
+  toolkits: { ...(parsed.toolkits ?? {}) },
   agents: { ...(parsed.agents ?? {}) },
 });

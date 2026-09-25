@@ -1,8 +1,8 @@
 import { isLockfileVersionCompatible } from '../../agent/catalog/lock/schema/is.lockfile.version.compatible.ts';
 import { LockfileVersionCompatibilityError } from './lockfile.version.compatibility.error.ts';
 
-/** The lockfile schema version this CLI reads and writes. */
-const SUPPORTED_LOCKFILE_VERSION = 1;
+/** Lockfile schema versions this CLI reads: 1, and 2 when toolkits are pinned. */
+const SUPPORTED_LOCKFILE_VERSIONS: readonly number[] = [1, 2];
 
 /**
  * Throws `LockfileVersionCompatibilityError` when a lockfile declares a
@@ -14,7 +14,7 @@ export function assertLockfileVersionCompatible(lockfileVersion: number | undefi
   if (lockfileVersion === undefined) {
     return;
   }
-  if (!isLockfileVersionCompatible(lockfileVersion, SUPPORTED_LOCKFILE_VERSION)) {
-    throw new LockfileVersionCompatibilityError(lockfileVersion, SUPPORTED_LOCKFILE_VERSION);
+  if (!isLockfileVersionCompatible(lockfileVersion, SUPPORTED_LOCKFILE_VERSIONS)) {
+    throw new LockfileVersionCompatibilityError(lockfileVersion, SUPPORTED_LOCKFILE_VERSIONS);
   }
 }
