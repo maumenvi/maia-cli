@@ -170,6 +170,26 @@ tests/
 7. Avoid adding dependencies unless they are clearly necessary.
 8. Validate with `typecheck`, `check:architecture`, and the test/coverage scripts before concluding work.
 
+## Release
+
+`package.json` is the only place that holds Maia's version. The CLI, the default `local`
+source ref in `maia.json`/`maia.lock.json` and the MCP client/server identities all read it
+through `src/shared/package/read.maia.package.version.ts`; never write a version literal
+anywhere else (`tests/shared/maia.version.sync.test.ts` fails if one drifts).
+
+1. Bump `version` in `package.json` only.
+2. Add the release entry to `CHANGELOG.md`.
+3. Commit with a clean working tree.
+4. Run `npm publish`. It runs `prepack` → `build:publish`, which ends with
+   `scripts/check-dist-version.mjs` (aborts if the built `dist/` reports another version),
+   and then `postpublish` → `scripts/tag-release.mjs`, which creates the annotated tag
+   `vX.Y.Z` on `HEAD` and pushes it to `origin`.
+5. If `postpublish` fails after the package was published (for example, no network), run
+   `node scripts/tag-release.mjs` again; it is idempotent and never moves or force-pushes a tag.
+
+Tags for releases published before this process can be created once, by hand, with the
+commands in `specs/007-fix-package-version/quickstart.md` (section "Tags retroativas").
+
 ## Notes for future changes
 
 - If a new module does not support the CLI directly, it probably should not live in this repository.
