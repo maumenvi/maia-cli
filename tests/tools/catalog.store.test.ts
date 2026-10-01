@@ -5,6 +5,7 @@ import path from 'node:path';
 import { describe, it } from 'node:test';
 
 import { AgentCatalogStore } from '../../src/agent/catalog/store/agent.catalog.store.ts';
+import { ROOT_PACKAGE_VERSION } from '../support/root.package.version.ts';
 
 describe('AgentCatalogStore', () => {
   it('enables strict source verification in new manifests', () => {
@@ -16,7 +17,7 @@ describe('AgentCatalogStore', () => {
       assert.equal(manifest.config.strictVerify, true);
       assert.equal(manifest.sources.local.type, 'registry');
       assert.equal(manifest.sources.local.url, 'npm:@maumenvi/maia-cli');
-      assert.equal(manifest.sources.local.ref, '1.5.2');
+      assert.equal(manifest.sources.local.ref, ROOT_PACKAGE_VERSION);
       assert.throws(() => store.verifyLockMetadata(null), /maia.lock.json not found/);
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
@@ -58,6 +59,7 @@ describe('AgentCatalogStore', () => {
       assert.ok(lock.packages['tool:read_file']);
       assert.ok(lock.packages['mcp:github']);
       assert.deepEqual(lock.packages['skill:repo_overview'].allowedLlms, ['model-x']);
+      assert.equal(lock.packages['tool:read_file'].provenance.ref, ROOT_PACKAGE_VERSION);
       assert.deepEqual(store.verifyLock(lock), { ok: true });
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
