@@ -10,6 +10,7 @@ import { ciCommand } from '../../src/cli/commands/ci.ts';
 import { installCommand } from '../../src/cli/commands/install/install.command.ts';
 import { ROOT_PACKAGE_VERSION } from '../support/root.package.version.ts';
 
+const CI_WARNING = 'warning: maia.json source "local" pins ref 1.5.2, a Maia version that was never published. Run "maia i" and commit maia.json and maia.lock.json to fix it.';
 const UPDATED_MESSAGE = `Updated maia.json source "local" ref from 1.5.2 (never published) to ${ROOT_PACKAGE_VERSION}; maia.lock.json regenerated.`;
 
 /** Creates a project whose local source pins `ref` and has read_file installed, optionally without a lockfile. */
@@ -94,6 +95,32 @@ describe('stale local source ref (1.5.2)', () => {
 
       assert.equal(readJson(tempDir, 'maia.json').sources.local.ref, '1.5.2');
       assert.deepEqual([...new Set(localRefs(readJson(tempDir, 'maia.lock.json')))], ['1.5.2']);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('maia ci only warns and leaves maia.json and maia.lock.json untouched', async () => {
+    const { tempDir, store } = await createProject('1.5.2');
+    try {
+      const before = ['maia.json', 'maia.lock.json'].map((file) => readFileSync(path.join(tempDir, file), 'utf8'));
+
+      const warnings = await capture('warn', () => capture('log', () => ciCommand([], { store })).then(() => undefined));
+
+      assert.deepEqual(warnings.filter((line) => line === CI_WARNING), [CI_WARNING]);
+      const after = ['maia.json', 'maia.lock.json'].map((file) => readFileSync(path.join(tempDir, file), 'utf8'));
+      assert.deepEqual(after, before);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('maia ci does not warn for any other ref', async () => {
+    const { tempDir, store } = await createProject('1.5.7');
+    try {
+      const warnings = await capture('warn', () => capture('log', () => ciCommand([], { store })).then(() => undefined));
+
+      assert.ok(!warnings.includes(CI_WARNING));
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
