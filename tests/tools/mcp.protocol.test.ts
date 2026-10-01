@@ -5,19 +5,22 @@ import { JsonRpcMcpClient } from '../../src/agent/mcp/runtime/client/json-rpc-cl
 import type { McpRequestOptions } from '../../src/agent/mcp/runtime/contracts/mcp.request.options.ts';
 import type { McpTransport } from '../../src/agent/mcp/runtime/contracts/mcp.transport.ts';
 import { McpJsonRpcError } from '../../src/agent/mcp/runtime/protocol/json-rpc/mcp.json.rpc.error.ts';
+import { ROOT_PACKAGE_VERSION } from '../support/root.package.version.ts';
 
 class LegacyTransport implements McpTransport {
   readonly kind = 'custom' as const;
   readonly methods: string[] = [];
   readonly notifications: string[] = [];
+  readonly params: unknown[] = [];
   private readonly initializeResult: unknown;
 
   constructor(initializeResult: unknown) {
     this.initializeResult = initializeResult;
   }
 
-  async request<TResult = unknown>(method: string): Promise<TResult> {
+  async request<TResult = unknown>(method: string, params?: unknown): Promise<TResult> {
     this.methods.push(method);
+    this.params.push(params);
     if (method === 'server/discover') {
       throw new McpJsonRpcError(-32601, 'Method not found: server/discover');
     }
@@ -105,6 +108,10 @@ describe('MCP protocol era negotiation', () => {
     assert.equal(client.getProtocolEra(), 'legacy');
     assert.deepEqual(transport.methods, ['server/discover', 'initialize']);
     assert.deepEqual(transport.notifications, ['notifications/initialized']);
+    assert.deepEqual((transport.params[1] as { clientInfo?: unknown }).clientInfo, {
+      name: 'maia',
+      version: ROOT_PACKAGE_VERSION,
+    });
   });
 
   it('uses stateless discovery and per-request metadata for a modern server', async () => {
@@ -131,6 +138,7 @@ describe('MCP protocol era negotiation', () => {
       const meta = (request.params as { _meta?: Record<string, unknown> })._meta;
       assert.equal(meta?.['io.modelcontextprotocol/protocolVersion'], '2026-07-28');
       assert.deepEqual(meta?.['io.modelcontextprotocol/clientCapabilities'], {});
+      assert.deepEqual(meta?.['io.modelcontextprotocol/clientInfo'], { name: 'maia', version: ROOT_PACKAGE_VERSION });
     }
     assert.equal(transport.requests[2]?.options?.headers?.['Mcp-Param-Text'], 'hello');
   });
