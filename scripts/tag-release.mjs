@@ -18,11 +18,13 @@ export function releaseTagName(version) {
 /**
  * Returns why this run must not tag, or null for a real publish.
  *
- * npm runs `postpublish` even on `--dry-run`, so the package was not
- * published and tagging it would block the real release (feature 008).
+ * npm runs `postpublish` even on `--dry-run` and on `npm stage publish`; in
+ * neither case is the version live, and tagging it would block the real
+ * release (feature 008). A dry-run wins over stage.
  */
 export function decidePublishSkip(env) {
   if (env.npm_config_dry_run === 'true') return 'dry-run';
+  if (env.npm_command === 'stage') return 'staged';
   return null;
 }
 
@@ -55,6 +57,13 @@ function main() {
   const skip = decidePublishSkip(process.env);
   if (skip === 'dry-run') {
     console.log(`Skipping release tag ${tag}: npm --dry-run does not publish the package`);
+    return;
+  }
+  if (skip === 'staged') {
+    console.log(
+      `Skipping release tag ${tag}: the version is only staged. `
+      + 'After "npm stage approve", run "node scripts/tag-release.mjs".',
+    );
     return;
   }
 
