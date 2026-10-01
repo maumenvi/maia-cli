@@ -37,3 +37,4 @@ if (existsSync(dataDir)) {
   copyJsonFilesRecursively(dataDir, distDataDir);
 }
 chmodSync(path.resolve(distDir, 'src', 'cli', 'index.js'), 0o755);
+execSync('node scripts/check-dist-version.mjs', { cwd: rootDir, stdio: 'inherit' });
