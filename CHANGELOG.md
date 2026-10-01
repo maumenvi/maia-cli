@@ -22,7 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `package.json` is the single source of Maia's version; a test fails if any exposed version
   drifts from it, and `build:publish` checks the compiled `dist/` before packing.
-- `postpublish` creates and pushes the `vX.Y.Z` git tag of each published release.
+- `postpublish` creates and pushes the `vX.Y.Z` git tag of each published release; it is
+  skipped on `npm publish --dry-run` and `npm stage publish`.
 
 ## [1.6.1] - 2026-09-24
 

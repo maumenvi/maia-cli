@@ -186,6 +186,10 @@ anywhere else (`tests/shared/maia.version.sync.test.ts` fails if one drifts).
    `vX.Y.Z` on `HEAD` and pushes it to `origin`.
 5. If `postpublish` fails after the package was published (for example, no network), run
    `node scripts/tag-release.mjs` again; it is idempotent and never moves or force-pushes a tag.
+6. `npm publish --dry-run` and `npm stage publish` also run `postpublish`, but the version is
+   not live yet, so the script prints `Skipping release tag …` and creates nothing. After
+   `npm stage approve <id>` (which runs no scripts), create the tag with
+   `node scripts/tag-release.mjs`.
 
 Tags for releases published before this process can be created once, by hand, with the
 commands in `specs/007-fix-package-version/quickstart.md` (section "Tags retroativas").
