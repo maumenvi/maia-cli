@@ -5,7 +5,24 @@ All notable changes to the Maia CLI are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.6.0]
+## [1.6.2] - 2026-10-01
+
+### Fixed
+- `maia.json`/`maia.lock.json` no longer pin the `local` source to `1.5.2`, a hand-written
+  version that was never published to npm (`npm view @maumenvi/maia-cli@1.5.2` returned 404).
+  New manifests record the running Maia version instead.
+- Existing projects that still pin `1.5.2` are fixed automatically by the next bare `maia i`,
+  which rewrites the `local` source ref and regenerates `maia.lock.json`; commit both files.
+  `maia ci` never rewrites files: it only prints a warning and keeps passing. Any other `ref`
+  is left untouched, and `maia i <name>` does not migrate.
+- The Maia MCP server now reports the real version in `serverInfo` (it reported `1.0.0`;
+  `--version` still overrides it), and Maia as an MCP client sends the real version in
+  `clientInfo` (it sent `1.5.2`).
+
+### Added
+- `package.json` is the single source of Maia's version; a test fails if any exposed version
+  drifts from it, and `build:publish` checks the compiled `dist/` before packing.
+- `postpublish` creates and pushes the `vX.Y.Z` git tag of each published release.
 
 ## [1.6.1] - 2026-09-24
 
