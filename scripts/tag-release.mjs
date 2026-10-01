@@ -15,6 +15,17 @@ export function releaseTagName(version) {
   return `v${version}`;
 }
 
+/**
+ * Returns why this run must not tag, or null for a real publish.
+ *
+ * npm runs `postpublish` even on `--dry-run`, so the package was not
+ * published and tagging it would block the real release (feature 008).
+ */
+export function decidePublishSkip(env) {
+  if (env.npm_config_dry_run === 'true') return 'dry-run';
+  return null;
+}
+
 /** Decides what to do with the release tag given the repository state. */
 export function decideTagAction({ dirty, existingSha, headSha }) {
   if (dirty) return 'refuse-dirty';
@@ -39,6 +50,13 @@ function main() {
   process.chdir(rootDir);
   const { version } = JSON.parse(readFileSync(path.resolve(rootDir, 'package.json'), 'utf8'));
   const tag = releaseTagName(version);
+
+  // Checked before any git call, so a dirty tree or an existing tag never fails a preview.
+  const skip = decidePublishSkip(process.env);
+  if (skip === 'dry-run') {
+    console.log(`Skipping release tag ${tag}: npm --dry-run does not publish the package`);
+    return;
+  }
 
   const action = decideTagAction({
     dirty: git(['status', '--porcelain']).length > 0,

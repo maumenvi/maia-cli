@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { decideTagAction, releaseTagName } from '../../scripts/tag-release.mjs';
+import { decidePublishSkip, decideTagAction, releaseTagName } from '../../scripts/tag-release.mjs';
 
 const HEAD = '0123456789abcdef0123456789abcdef01234567';
 const OTHER = 'fedcba9876543210fedcba9876543210fedcba98';
@@ -25,5 +25,16 @@ describe('tag-release', () => {
 
   it('refuses to move a tag that points elsewhere', () => {
     assert.equal(decideTagAction({ dirty: false, existingSha: OTHER, headSha: HEAD }), 'refuse-moved');
+  });
+
+  it('skips tagging on an npm --dry-run', () => {
+    assert.equal(decidePublishSkip({ npm_config_dry_run: 'true' }), 'dry-run');
+    assert.equal(decidePublishSkip({ npm_config_dry_run: 'true', npm_command: 'publish' }), 'dry-run');
+  });
+
+  it('does not treat other dry-run values as a preview', () => {
+    assert.equal(decidePublishSkip({ npm_config_dry_run: 'false' }), null);
+    assert.equal(decidePublishSkip({ npm_config_dry_run: '' }), null);
+    assert.equal(decidePublishSkip({}), null);
   });
 });
