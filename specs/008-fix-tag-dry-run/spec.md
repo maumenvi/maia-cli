@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-01
 
-**Status**: Draft
+**Status**: Implemented (branch `007-fix-package-version`)
 
 **Input**: Descrição do usuário: "o erro encontrado pelo code review". O achado do
 `/code-review` da branch `007-fix-package-version`:

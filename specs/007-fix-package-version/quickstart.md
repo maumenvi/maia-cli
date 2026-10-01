@@ -64,6 +64,8 @@ npm pack                               # roda build:publish + check-dist-version
 tmp=$(mktemp -d) && cd "$tmp" && npm init -y >/dev/null
 npm i <repo>/maumenvi-maia-cli-X.tgz
 ./node_modules/.bin/maia --version     # → X
+npx --yes --package <repo>/maumenvi-maia-cli-X.tgz maia --version   # → X (via npx)
+G=$(mktemp -d) && npm i -g --prefix "$G" <repo>/maumenvi-maia-cli-X.tgz && "$G/bin/maia" --version   # → X (global)
 ```
 
 Teste negativo: mudar só o `version` do `package.json` para Y, sem mais nada, e rodar

@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-01
 
-**Status**: Draft
+**Status**: Implemented (branch `007-fix-package-version`; correção complementar em [008](../008-fix-tag-dry-run/spec.md))
 
 **Input**: Descrição do usuário (issue): "Versão fixa 1.5.2 em package.metadata vai para o
 maia.lock.json (versão não publicada). Causa: `dist/src/shared/package.metadata.js` tem
@@ -38,8 +38,11 @@ Pontos afetados pela constante desatualizada (levantados no código-fonte atual)
 4. **Metadados de requisição do protocolo moderno** (`clientInfo.version` no envelope de cada
    requisição) — não citado na issue, mas usa a mesma constante.
 
-Além disso, o servidor stdio do MCP tem um valor padrão próprio (`1.0.0`) quando nenhuma
-versão é informada — outra possível divergência a ser avaliada no plano.
+Além disso, o servidor MCP do Maia usava um segundo valor fixo, `1.0.0`: o comando
+`maia mcp-server` sempre passava `1.0.0` quando `--version` não era informado, e o servidor
+stdio tinha o mesmo padrão. Era esse o valor que o servidor realmente informava aos agentes, e
+não o `1.5.2`. A lista completa dos 7 pontos, com arquivo e linha, está em
+[research.md](./research.md#levantamento-do-estado-atual).
 
 Não existem tags de versão (`vX.Y.Z`) no repositório, o que impede correlacionar uma versão
 publicada com o commit que a gerou.
@@ -51,6 +54,9 @@ publicada com o commit que a gerou.
 - Q: O que fazer com manifestos/lockfiles existentes que já registram `1.5.2` na fonte
   `local`? → A: C — o próximo `maia i` corrige automaticamente o `ref` e regenera o
   lockfile; `maia ci` não altera arquivos e apenas avisa.
+- Refinamento do plano (research D4): só o `maia i` **sem argumentos** corrige. `maia i <nome>`
+  roda dentro de um rollback próprio, e corrigir ali, com falha no meio, deixaria o manifesto
+  novo com o lock antigo.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -173,6 +179,8 @@ que `vX` existe e aponta para o commit publicado.
   usuário, ou de uma versão anterior real do Maia): não é tocada pela correção automática.
 - **Projeto com `ref: 1.5.2` mas sem lockfile**: `maia i` corrige o manifesto e gera o
   lockfile já com a versão real.
+- **`maia i <nome>` num projeto com `ref: 1.5.2`**: instala normalmente e mantém o `ref`
+  `1.5.2`, sem corrigir e sem avisar. A correção fica para o próximo `maia i` sem argumentos.
 - **Execução a partir do código-fonte** (`npm run dev` / `node src/cli/index.ts`): a versão
   exposta deve ser a mesma do pacote no repositório, sem depender de build.
 - **Pacote instalado globalmente, via `npx` ou em `node_modules` aninhado**: a versão deve
@@ -211,7 +219,7 @@ que `vX` existe e aponta para o commit publicado.
 - **FR-009**: Se a versão do Maia não puder ser determinada, o Maia MUST falhar com mensagem
   de erro clara em vez de gravar ou informar um valor padrão inventado.
 - **FR-010**: Quando a fonte `local` do manifesto do projeto tiver `ref` igual a `1.5.2`,
-  `maia i` MUST reescrever esse `ref` para a versão real do Maia em execução, regenerar o
+  `maia i` **sem argumentos** MUST reescrever esse `ref` para a versão real do Maia em execução, regenerar o
   lockfile de forma consistente (proveniência e integridade) e informar ao usuário, na saída
   do comando, que o manifesto e o lockfile foram corrigidos e por quê.
 - **FR-010a**: Nessa mesma situação, `maia ci` MUST NOT alterar manifesto nem lockfile; MUST
@@ -219,9 +227,12 @@ que `vX` existe e aponta para o commit publicado.
   lockfile estiver consistente com o manifesto.
 - **FR-010b**: A correção automática MUST se limitar ao valor `1.5.2` na fonte `local`;
   qualquer outro `ref` (em `local` ou em outras fontes) permanece intocado.
+- **FR-010c**: `maia i <nome>` (instalação nomeada) MUST NOT corrigir o `ref` nem avisar,
+  para que uma falha no meio da instalação não deixe manifesto e lockfile inconsistentes.
 - **FR-011**: O processo de release MUST incluir a criação e o envio de uma tag `vX.Y.Z` no
   repositório GitHub para cada versão publicada, documentado no fluxo de publicação do
-  projeto.
+  projeto. Prévias (`npm publish --dry-run`) e publicações em stage não criam tag; ver
+  [feature 008](../008-fix-tag-dry-run/spec.md).
 - **FR-012**: O CHANGELOG MUST registrar a correção, incluindo o impacto em projetos que já
   tenham `1.5.2` gravado.
 
