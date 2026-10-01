@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { versionCommand } from '../../src/cli/commands/version/version.command.ts';
+import { ROOT_PACKAGE_VERSION } from '../support/root.package.version.ts';
 
 describe('CLI version', () => {
   it('prints the package version', async () => {
@@ -18,6 +19,6 @@ describe('CLI version', () => {
     }
 
     assert.equal(output.length, 1);
-    assert.match(output[0], /^\d+\.\d+\.\d+/);
+    assert.equal(output[0], ROOT_PACKAGE_VERSION);
   });
 });
