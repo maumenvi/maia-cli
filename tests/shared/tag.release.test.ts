@@ -45,4 +45,10 @@ describe('tag-release', () => {
   it('reports a staged dry-run as a dry-run', () => {
     assert.equal(decidePublishSkip({ npm_command: 'stage', npm_config_dry_run: 'true' }), 'dry-run');
   });
+
+  it('tags on a real publish and on manual runs', () => {
+    assert.equal(decidePublishSkip({ npm_command: 'publish' }), null);
+    assert.equal(decidePublishSkip({ npm_command: 'run' }), null);
+    assert.equal(decidePublishSkip({ npm_command: 'publish', npm_config_dry_run: 'false' }), null);
+  });
 });
