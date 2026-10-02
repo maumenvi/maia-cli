@@ -1,7 +1,6 @@
 import { join } from 'node:path';
 
 import type { AgentTarget } from '../contracts/agent.target.ts';
-import { mcpEntry } from './mcp.entry.ts';
 
 /** Defines the copilot value. */
 export const copilot: AgentTarget = {
@@ -12,7 +11,7 @@ export const copilot: AgentTarget = {
   configPaths(cwd) {
     return [join(cwd, '.vscode', 'mcp.json')];
   },
-  buildEntry: mcpEntry,
+  projectDir: 'workspace-variable',
   skillsDir(cwd) {
     return join(cwd, '.github', 'skills');
   },

@@ -133,7 +133,7 @@ contracts/agent.registration.md).
 
 **Independent Test**: quickstart §2.
 
-- [ ] T013 [US1] Em `src/agent/agents/contracts/agent.target.ts`:
+- [X] T013 [US1] Em `src/agent/agents/contracts/agent.target.ts`:
   - adicionar `legacyConfigPaths?(cwd): string[]` ("só para migrar a entrada `maia`; nunca é destino");
   - adicionar `projectDir: 'omit' | 'workspace-variable'` (**obrigatório**; data-model: "sem caminho absoluto");
   - adicionar `nativeCommands?: readonly string[]`;
@@ -141,7 +141,7 @@ contracts/agent.registration.md).
   - atualizar o JSDoc de `configPaths` e `skillsDir`, porque a skill agora é pasta.
 
   Criar `src/agent/agents/contracts/agent.registration.ts` com `type AgentRegistration = { status: 'registered'; configPath: string } | { status: 'skipped'; reason: string }`. Esta tarefa só compila depois da T014, então **as duas vão no mesmo commit**.
-- [ ] T014 [US1] Em `src/agent/agents/registry/mcp.entry.ts`, `mcpEntry(agentId, projectDir)`: `'omit'` → sem chave `cwd`; `'workspace-variable'` → `cwd: '${workspaceFolder}'`. Nos 7 alvos de `src/agent/agents/registry/`, remover `buildEntry` e definir `projectDir` conforme research D3: `copilot` e `cursor` → `'workspace-variable'`; `claude`, `zed`, `codex`, `continue.agent` e `cline` → `'omit'`. No `claude.ts`: `configPaths → [join(cwd,'.mcp.json')]` e `legacyConfigPaths → [join(cwd,'.claude','claude_desktop_config.json')]`. `src/agent/agents/inject/collect.agent.mcp.entries.ts` e `src/agent/agents/profiles/write.agent.capability.profile.ts` passam a usar `mcpEntry(target.id, target.projectDir)`; o perfil grava `mcpServer` **sem** `cwd` (usa `'omit'`). Testes:
+- [X] T014 [US1] Em `src/agent/agents/registry/mcp.entry.ts`, `mcpEntry(agentId, projectDir)`: `'omit'` → sem chave `cwd`; `'workspace-variable'` → `cwd: '${workspaceFolder}'`. Nos 7 alvos de `src/agent/agents/registry/`, remover `buildEntry` e definir `projectDir` conforme research D3: `copilot` e `cursor` → `'workspace-variable'`; `claude`, `zed`, `codex`, `continue.agent` e `cline` → `'omit'`. No `claude.ts`: `configPaths → [join(cwd,'.mcp.json')]` e `legacyConfigPaths → [join(cwd,'.claude','claude_desktop_config.json')]`. `src/agent/agents/inject/collect.agent.mcp.entries.ts` e `src/agent/agents/profiles/write.agent.capability.profile.ts` passam a usar `mcpEntry(target.id, target.projectDir)`; o perfil grava `mcpServer` **sem** `cwd` (usa `'omit'`). Testes:
   - em `tests/tools/collect.agent.mcp.entries.test.ts`, para **cada um dos 7 agentes**, a entrada não contém o caminho do projeto nem nenhum caminho absoluto, e copilot/cursor têm `${workspaceFolder}`;
   - em `tests/cli/agent.test.ts`, `capabilities.json` sem `cwd`;
   - na config TOML do codex (`inject.toml.mcp.servers.ts`), a ausência de `cwd` não gera chave vazia.

@@ -173,6 +173,8 @@ describe('CLI agent/init', () => {
       assert.deepEqual(claude.tools.map((entry: { name: string }) => entry.name), ['claude-only']);
       assert.equal(codex.mcps[0]?.name, 'shared-mcp');
       assert.equal(claude.mcps[0]?.name, 'shared-mcp');
+      assert.equal('cwd' in claude.mcpServer.config, false);
+      assert.equal(readFileSync(path.resolve(tempDir, '.maia', 'agents', 'codex', 'capabilities.json'), 'utf8').includes(tempDir), false);
     } finally {
       process.chdir(originalCwd);
       rmSync(tempDir, { recursive: true, force: true });

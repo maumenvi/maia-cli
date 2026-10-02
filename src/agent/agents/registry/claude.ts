@@ -1,7 +1,6 @@
 import { join } from 'node:path';
 
 import type { AgentTarget } from '../contracts/agent.target.ts';
-import { mcpEntry } from './mcp.entry.ts';
 
 /** Defines the claude value. */
 export const claude: AgentTarget = {
@@ -9,9 +8,12 @@ export const claude: AgentTarget = {
   name: 'Claude',
   configFormat: 'mcp-servers',
   configPaths(cwd) {
-    return [join(cwd, '.mcp.json'), join(cwd, '.claude', 'claude_desktop_config.json')];
+    return [join(cwd, '.mcp.json')];
   },
-  buildEntry: mcpEntry,
+  legacyConfigPaths(cwd) {
+    return [join(cwd, '.claude', 'claude_desktop_config.json')];
+  },
+  projectDir: 'omit',
   skillsDir(cwd) {
     return join(cwd, '.claude', 'skills');
   },

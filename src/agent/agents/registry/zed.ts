@@ -1,7 +1,6 @@
 import { join } from 'node:path';
 
 import type { AgentTarget } from '../contracts/agent.target.ts';
-import { mcpEntry } from './mcp.entry.ts';
 
 /** Defines the zed value. */
 export const zed: AgentTarget = {
@@ -11,7 +10,7 @@ export const zed: AgentTarget = {
   configPaths(cwd) {
     return [join(cwd, '.zed', 'settings.json')];
   },
-  buildEntry: mcpEntry,
+  projectDir: 'omit',
   instructionsFile(cwd) {
     return join(cwd, 'AGENTS.md');
   },

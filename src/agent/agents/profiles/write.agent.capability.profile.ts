@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import type { AgentCatalogStore } from '../../catalog/store/agent.catalog.store.ts';
 import type { AgentTarget } from '../contracts/agent.target.ts';
+import { mcpEntry } from '../registry/mcp.entry.ts';
 import { resolveAuthorizedPackages } from './resolve.authorized.packages.ts';
 
 /** Writes the capabilities authorized for one agent into its isolated Maia profile. */
@@ -14,7 +15,8 @@ export function writeAgentCapabilityProfile(store: AgentCatalogStore, target: Ag
   const capabilities = {
     generatedAt: new Date().toISOString(),
     agent: { id: target.id, name: target.name },
-    mcpServer: target.buildEntry(paths.projectRoot, target.id),
+    // The profile is informational; it never records a machine path.
+    mcpServer: mcpEntry(target.id, 'omit'),
     skills: packages.filter((pkg) => pkg.type === 'skill'),
     tools: packages.filter((pkg) => pkg.type === 'tool'),
     mcps: packages.filter((pkg) => pkg.type === 'mcp'),

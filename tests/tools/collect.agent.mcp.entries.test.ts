@@ -6,6 +6,7 @@ import { describe, it } from 'node:test';
 
 import { AgentCatalogStore } from '../../src/agent/catalog/store/agent.catalog.store.ts';
 import { collectAgentMcpEntries } from '../../src/agent/agents/inject/collect.agent.mcp.entries.ts';
+import { agentRegistry } from '../../src/agent/agents/registry/agent.registry.ts';
 import { claude } from '../../src/agent/agents/registry/claude.ts';
 
 function withStore<T>(run: (store: AgentCatalogStore) => T): T {
@@ -74,6 +75,19 @@ describe('collectAgentMcpEntries', () => {
         assert.deepEqual(warnings, []);
       } finally {
         console.warn = originalWarn;
+      }
+    });
+  });
+
+  it('never writes a machine path for any agent (FR-004)', () => {
+    withStore((store) => {
+      const projectRoot = store.getPaths().projectRoot;
+      for (const target of agentRegistry) {
+        const [entry] = collectAgentMcpEntries(store, target);
+        const serialized = JSON.stringify(entry);
+        assert.equal(serialized.includes(projectRoot), false, `${target.id} leaks the project path`);
+        const expected = target.id === 'copilot' || target.id === 'cursor' ? '${workspaceFolder}' : undefined;
+        assert.equal(entry.config.cwd, expected, `${target.id} cwd`);
       }
     });
   });
