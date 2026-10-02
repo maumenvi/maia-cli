@@ -1,19 +1,24 @@
 import { createInterface } from 'node:readline/promises';
 
 import type { CatalogSearchResult } from '../../../agent/catalog/providers/contracts/catalog.search.result.ts';
+import type { CatalogSelectOptions } from '../../contracts/catalog.select.options.ts';
 import { extractCredentialEnvHints } from './extract.credential.env.hints.ts';
 import { formatCredentialSources } from './format.credential.sources.ts';
 import { formatInstalls } from './format.installs.ts';
 
 /** Performs the select catalog result operation. */
-export async function selectCatalogResult(results: CatalogSearchResult[]): Promise<CatalogSearchResult | null> {
+export async function selectCatalogResult(
+  results: CatalogSearchResult[],
+  options: CatalogSelectOptions = {},
+): Promise<CatalogSearchResult | null> {
   if (results.length === 0) {
     return null;
   }
 
   console.log('Available results:\n');
   results.forEach((result, index) => {
-    console.log(`${index + 1}) ${result.displayName} (${result.source})${formatInstalls(result.installs)}`);
+    const trust = options.trustOf ? (options.trustOf(result) ? ' [trusted]' : ' [untrusted]') : '';
+    console.log(`${index + 1}) ${result.displayName} (${result.source})${trust}${formatInstalls(result.installs)}`);
     if (result.description) {
       console.log(`   ${result.description}`);
     }
@@ -27,10 +32,11 @@ export async function selectCatalogResult(results: CatalogSearchResult[]): Promi
     }
   });
 
-  const input = createInterface({ input: process.stdin, output: process.stdout });
+  const input = options.questionFn ? null : createInterface({ input: process.stdin, output: process.stdout });
+  const ask = options.questionFn ?? ((question: string) => (input as NonNullable<typeof input>).question(question));
   try {
     while (true) {
-      const answer = await input.question(`\nChoose an option (1-${results.length}, 0 to cancel): `);
+      const answer = await ask(`\nChoose an option (1-${results.length}, 0 to cancel): `);
       const choice = Number(answer.trim());
       if (choice === 0) {
         return null;
@@ -41,6 +47,6 @@ export async function selectCatalogResult(results: CatalogSearchResult[]): Promi
       console.log(`Invalid option. Enter a number between 1 and ${results.length}.`);
     }
   } finally {
-    input.close();
+    input?.close();
   }
 }

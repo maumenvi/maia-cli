@@ -66,9 +66,10 @@ describe('lock with toolkits', () => {
     }, []);
   });
 
-  it('accepts lockfile versions 1 and 2 only', () => {
+  it('accepts lockfile versions 1, 2 and 3 only', () => {
     assert.doesNotThrow(() => assertLockfileVersionCompatible(1));
     assert.doesNotThrow(() => assertLockfileVersionCompatible(2));
-    assert.throws(() => assertLockfileVersionCompatible(3), /supports \(1, 2\)/);
+    assert.doesNotThrow(() => assertLockfileVersionCompatible(3));
+    assert.throws(() => assertLockfileVersionCompatible(4), /supports \(1, 2, 3\)/);
   });
 });

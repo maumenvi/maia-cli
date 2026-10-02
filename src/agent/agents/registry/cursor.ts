@@ -1,7 +1,6 @@
 import { join } from 'node:path';
 
 import type { AgentTarget } from '../contracts/agent.target.ts';
-import { mcpEntry } from './mcp.entry.ts';
 
 /** Defines the cursor value. */
 export const cursor: AgentTarget = {
@@ -12,7 +11,7 @@ export const cursor: AgentTarget = {
   configPaths(cwd) {
     return [join(cwd, '.cursor', 'mcp.json')];
   },
-  buildEntry: mcpEntry,
+  projectDir: 'workspace-variable',
   instructionsFile(cwd) {
     return join(cwd, '.cursor', 'rules', 'maia.mdc');
   },

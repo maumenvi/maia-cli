@@ -11,10 +11,11 @@ import { defaultToolkitIo } from '../toolkit/default.toolkit.io.ts';
 import { restoreToolkits } from '../toolkit/restore.toolkits.ts';
 import type { ToolkitIo } from '../toolkit/toolkit.io.ts';
 import { installNamedCapability } from './install.named.capability.ts';
+import { upgradeSingleFileSkills } from './upgrade.single.file.skills.ts';
 
 /** Builds the install command over the given toolkit side effects. */
 export function createInstallCommand(io: ToolkitIo): CommandHandler {
-  return async (args, { store }) => {
+  return async (args, { store, interaction }) => {
     ensureInitialized(store);
     const { positional, flags } = parseFlags(args);
 
@@ -26,6 +27,7 @@ export function createInstallCommand(io: ToolkitIo): CommandHandler {
       if (migrateLocalRef) {
         store.saveManifest(migrateStaleLocalSourceRef(manifest, readMaiaPackageVersion()));
       }
+      await upgradeSingleFileSkills(store);
       const lock = store.buildLock();
       if (migrateLocalRef) {
         console.log(
@@ -34,6 +36,9 @@ export function createInstallCommand(io: ToolkitIo): CommandHandler {
         );
       }
       const result = await reinstallFromLock(store, lock);
+      // The lock above was hashed before materializing: relock so it records
+      // what is now on disk (a restored or upgraded skill folder included).
+      store.buildLock();
       const toolkits = restoreToolkits(store, lock, 'install', io);
       restoreConfiguredAgents(store);
       console.log(`Bootstrapped maia.lock.json with ${Object.keys(lock.packages).length} locked entries`);
@@ -42,7 +47,7 @@ export function createInstallCommand(io: ToolkitIo): CommandHandler {
       return;
     }
 
-    await installNamedCapability(store, positional, flags);
+    await installNamedCapability(store, positional, flags, interaction);
   };
 }
 

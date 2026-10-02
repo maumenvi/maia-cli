@@ -1,5 +1,6 @@
 import path from 'node:path';
 
+import type { AgentRegistration } from '../../../agent/agents/contracts/agent.registration.ts';
 import type { AgentTarget } from '../../../agent/agents/contracts/agent.target.ts';
 import { resolveAuthorizedPackages } from '../../../agent/agents/profiles/resolve.authorized.packages.ts';
 import type { AgentCatalogStore } from '../../../agent/catalog/store/agent.catalog.store.ts';
@@ -11,7 +12,11 @@ export const CAPABILITY_BLOCK_START = '<!-- maia:capabilities:start -->';
 export const CAPABILITY_BLOCK_END = '<!-- maia:capabilities:end -->';
 
 /** Renders the managed capability block listing every capability authorized for one agent. */
-export function renderAgentCapabilityBlock(store: AgentCatalogStore, target: AgentTarget): string {
+export function renderAgentCapabilityBlock(
+  store: AgentCatalogStore,
+  target: AgentTarget,
+  registration: AgentRegistration,
+): string {
   const projectRoot = store.getPaths().projectRoot;
   const packages = resolveAuthorizedPackages(store, target);
   const skills = packages.filter((pkg) => pkg.type === 'skill');
@@ -40,17 +45,23 @@ export function renderAgentCapabilityBlock(store: AgentCatalogStore, target: Age
     '',
     '## Maia capabilities',
     '',
-    target.skillsDir
-      ? 'The skills, MCP servers, and tools below are registered natively for this agent by Maia.'
-      : 'The MCP servers below are registered natively for this agent by Maia. Skills and tools are available through the Maia MCP server.',
+    // Only claim what actually happened: the agent reads this text and goes
+    // looking for the tools it promises.
+    ...(registration.status === 'registered'
+      ? [
+        `The \`maia\` MCP proxy is registered for this agent in \`${path.relative(projectRoot, registration.configPath)}\`; the capabilities below are reachable through it.`,
+        ...(target.skillsDir ? ['Skills are also copied into this agent\'s native skills directory.'] : []),
+      ]
+      : [`No MCP server is registered for this agent: ${registration.reason}. Run \`maia init ${target.id}\` in the project to register it.`]),
     'Treat `maia list-capabilities --json` as the authoritative inventory.',
     '',
     '### Skills',
     ...skillLines,
     '',
     '### MCP servers',
-    '- `maia` — aggregating proxy exposing every capability below',
-    ...mcps.map((pkg) => `- \`${pkg.name}\``),
+    ...(registration.status === 'registered'
+      ? ['- `maia` — aggregating proxy exposing every capability below', ...mcps.map((pkg) => `- \`${pkg.name}\``)]
+      : ['- _not registered_']),
     '',
     '### Tools',
     ...(tools.length > 0

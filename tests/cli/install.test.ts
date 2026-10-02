@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { AgentCatalogStore } from '../../src/agent/catalog/store/agent.catalog.store.ts';
 import { installCommand } from '../../src/cli/commands/install/install.command.ts';
 import { removeCommand } from '../../src/cli/commands/remove.ts';
+import { fakeSkillTree } from '../support/fake.skill.tree.ts';
 
 const COMMIT = '0123456789abcdef0123456789abcdef01234567';
 const cliEntry = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../src/cli/index.ts');
@@ -73,6 +74,8 @@ describe('CLI install/remove', () => {
         if (url === 'https://api.github.com/repos/vercel-labs/skills/commits/main') {
           return Response.json({ sha: COMMIT });
         }
+        const tree = fakeSkillTree(url);
+        if (tree) return tree;
         throw new Error(`Unexpected request: ${url}`);
       };
 
@@ -84,9 +87,9 @@ describe('CLI install/remove', () => {
 
       const skillPackage = lock?.packages['skill:find-skills'];
       assert.ok(skillPackage);
-      assert.equal(skillPackage?.path, 'skills/find-skills/SKILL.md');
+      assert.equal(skillPackage?.path, 'skills/find-skills');
       assert.ok(existsSync(path.resolve(tempDir, '.maia', skillPackage?.path ?? '')));
-      assert.ok(readFileSync(path.resolve(tempDir, '.maia', skillPackage?.path ?? ''), 'utf8').includes('# Find Skills'));
+      assert.ok(readFileSync(path.resolve(tempDir, '.maia', skillPackage?.path ?? '', 'SKILL.md'), 'utf8').includes('# Find Skills'));
 
       const vscodeMcpFile = path.resolve(tempDir, '.vscode', 'mcp.json');
       assert.ok(existsSync(vscodeMcpFile));
@@ -208,6 +211,8 @@ describe('CLI install/remove', () => {
         if (url === 'https://api.github.com/repos/vercel-labs/skills/commits/main') {
           return Response.json({ sha: COMMIT });
         }
+        const tree = fakeSkillTree(url);
+        if (tree) return tree;
         throw new Error(`Unexpected request: ${url}`);
       };
 

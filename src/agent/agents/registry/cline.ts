@@ -1,7 +1,6 @@
 import { join } from 'node:path';
 
 import type { AgentTarget } from '../contracts/agent.target.ts';
-import { mcpEntry } from './mcp.entry.ts';
 
 /** Defines the cline value. */
 export const cline: AgentTarget = {
@@ -11,7 +10,7 @@ export const cline: AgentTarget = {
   configPaths(cwd) {
     return [join(cwd, '.cline', 'mcp.json')];
   },
-  buildEntry: mcpEntry,
+  projectDir: 'omit',
   instructionsFile(cwd) {
     return join(cwd, '.clinerules', 'maia.md');
   },

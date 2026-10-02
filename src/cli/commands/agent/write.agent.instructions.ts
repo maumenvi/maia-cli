@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
+import type { AgentRegistration } from '../../../agent/agents/contracts/agent.registration.ts';
 import type { AgentTarget } from '../../../agent/agents/contracts/agent.target.ts';
 import type { AgentCatalogStore } from '../../../agent/catalog/store/agent.catalog.store.ts';
 import { upsertMarkedBlock } from '../../shared/upsert.marked.block.ts';
@@ -15,7 +16,11 @@ import {
  * file, creating the file (and parent directories) when needed and never
  * touching content outside the markers.
  */
-export function writeAgentInstructions(store: AgentCatalogStore, target: AgentTarget): string | null {
+export function writeAgentInstructions(
+  store: AgentCatalogStore,
+  target: AgentTarget,
+  registration: AgentRegistration,
+): string | null {
   if (!target.instructionsFile) {
     return null;
   }
@@ -26,7 +31,7 @@ export function writeAgentInstructions(store: AgentCatalogStore, target: AgentTa
     current,
     CAPABILITY_BLOCK_START,
     CAPABILITY_BLOCK_END,
-    renderAgentCapabilityBlock(store, target),
+    renderAgentCapabilityBlock(store, target, registration),
   );
 
   mkdirSync(path.dirname(filePath), { recursive: true });

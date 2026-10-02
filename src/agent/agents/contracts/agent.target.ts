@@ -1,6 +1,5 @@
 import type { AgentConfigFormat } from '../inject/agent.config.format.ts';
 import type { MCPConfig } from '../../tools/contracts/mcp.config.ts';
-import type { AgentMcpEntry } from './agent.mcp.entry.ts';
 
 /** Describes the agent target contract. */
 export interface AgentTarget {
@@ -27,13 +26,22 @@ export interface AgentTarget {
    */
   configPaths(cwd: string): string[];
   /**
-   * Build the MCP entry that should be injected for this agent.
-   * `cwd` is the project directory where `maia mcp-server` will run.
+   * Config files older Maia versions wrote for this agent. They are never a
+   * destination: Maia only moves its own `maia` entry out of them.
    */
-  buildEntry(cwd: string, agentId: string): AgentMcpEntry;
+  legacyConfigPaths?(cwd: string): string[];
+  /**
+   * How the proxy entry tells the agent where the project is, without ever
+   * writing a machine path into a project file: `'workspace-variable'` uses
+   * `${workspaceFolder}` (expanded by the agent); `'omit'` leaves `cwd` out
+   * because the agent already starts servers inside the project.
+   */
+  projectDir: 'omit' | 'workspace-variable';
+  /** Built-in slash commands of the agent, used to warn about skill name clashes. */
+  nativeCommands?: readonly string[];
   /**
    * Absolute path to the agent's native skills directory, when the agent
-   * supports first-class skills. Skills are copied here as `<name>/SKILL.md`.
+   * supports first-class skills. Each skill is copied here as its whole folder.
    */
   skillsDir?(cwd: string): string;
   /**

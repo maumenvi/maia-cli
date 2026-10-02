@@ -199,7 +199,10 @@ commands in `specs/007-fix-package-version/quickstart.md` (section "Tags retroat
 - If a new module does not support the CLI directly, it probably should not live in this repository.
 - When adding agent compatibility, wire it through the existing agent registry and config injection flow. Set `configFormat` and, where the agent supports them, `skillsDir` / `instructionsFile` on the `AgentTarget` so `configureAgents` can register MCPs and skills in that agent's standard locations.
 - When adding runtime features, keep them compatible with the built-in MCP server and local catalog layout.
-- Known open follow-ups: `maia mcp sync` only syncs `.vscode/mcp.json` and does not re-run `restoreConfiguredAgents` for the other agents; native skill materialization copies only `SKILL.md`, so multi-file skills lose their extra files.
+- Known open follow-ups: `maia mcp sync` only syncs `.vscode/mcp.json` and does not re-run `restoreConfiguredAgents` for the other agents; Cline reads MCP servers only from its global `cline_mcp_settings.json`, so the project `.cline/mcp.json` Maia writes is not picked up; current Continue prefers `.continue/mcpServers/*.yaml` over `.continue/config.json`; Cursor's `mcp.json` uses the `mcpServers` key while the `cursor` target is declared with the `servers` format (see specs/009-agent-integration-fixes/research.md, D3).
+- User-facing known issues live in the README "Known issues" / "Erros conhecidos" section (en/pt-BR); keep it in sync with the follow-ups above when one is fixed or found.
+- Skills are folders (`skills/<name>/`): never assume a skill is a single `SKILL.md`; lockfile version 3 records a hash per file.
+- `maia mcp-server` must find the project without a path in the agent config (`CLAUDE_PROJECT_DIR`, then walking up); never write a machine path into a project file.
 
 
 # Agents

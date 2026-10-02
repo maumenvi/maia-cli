@@ -1,5 +1,9 @@
+import path from 'node:path';
+
 import { collectAgentMcpEntries } from '../../../agent/agents/inject/collect.agent.mcp.entries.ts';
+import { hasMaiaProxyEntry } from '../../../agent/agents/inject/has.maia.proxy.entry.ts';
 import { injectAgentConfig } from '../../../agent/agents/inject/inject.agent.config.ts';
+import { removeAgentMcpEntry } from '../../../agent/agents/inject/remove.agent.mcp.entry.ts';
 import { resolveConfigPath } from '../../../agent/agents/inject/resolve.config.path.ts';
 import { writeAgentCapabilityProfile } from '../../../agent/agents/profiles/write.agent.capability.profile.ts';
 import type { AgentCatalogStore } from '../../../agent/catalog/store/agent.catalog.store.ts';
@@ -19,6 +23,9 @@ export function configureAgents(store: AgentCatalogStore, agentIds: string[]): v
     const configPath = resolveConfigPath(target, cwd);
     if (!isProjectLocalConfig(configPath, cwd)) {
       console.log(`Skipping ${target.name} config injection: this project is local-only and does not modify global agent configs.`);
+      // Rewrite the guidance anyway, so an older block never keeps claiming
+      // a registration that does not exist.
+      writeAgentInstructions(store, target, { status: 'skipped', reason: 'this project is local-only' });
       continue;
     }
 
@@ -28,13 +35,28 @@ export function configureAgents(store: AgentCatalogStore, agentIds: string[]): v
     const mcpCount = entries.length - 1;
     console.log(`${action} ${target.name} config: ${finalPath}`);
     console.log(`Registered ${mcpCount} MCP server(s) plus the "maia" proxy in ${target.name}.`);
+    for (const legacyPath of target.legacyConfigPaths?.(cwd) ?? []) {
+      // Older Maia versions registered the proxy in a file the agent never
+      // reads; move only our own entry and leave the file in place.
+      try {
+        if (hasMaiaProxyEntry(target, legacyPath)) {
+          removeAgentMcpEntry(target, legacyPath, 'maia');
+          console.log(`Moved the "maia" proxy from ${path.relative(cwd, legacyPath)} to ${path.relative(cwd, finalPath)}.`);
+        }
+      } catch (error) {
+        console.warn(`warning: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+    if (target.id === 'claude' && created) {
+      console.log('Claude Code asks you to approve project MCP servers from .mcp.json the first time; approve "maia".');
+    }
 
     const copiedSkills = materializeAgentSkills(store, target);
     if (copiedSkills.length > 0) {
       console.log(`Copied ${copiedSkills.length} skill(s) into ${target.name}'s native skills directory.`);
     }
 
-    const instructionsFile = writeAgentInstructions(store, target);
+    const instructionsFile = writeAgentInstructions(store, target, { status: 'registered', configPath: finalPath });
     if (instructionsFile) {
       console.log(`Updated capability guidance for ${target.name}: ${instructionsFile}`);
     }

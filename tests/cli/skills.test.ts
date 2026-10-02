@@ -7,6 +7,8 @@ import { describe, it } from 'node:test';
 import { AgentCatalogStore } from '../../src/agent/catalog/store/agent.catalog.store.ts';
 import { discoverSkillsFromStore } from '../../src/cli/commands/skills/discover.skills.from.store.ts';
 import { runSkillsCli } from '../../src/cli/commands/skills/run.skills.cli.ts';
+import { fakeInteraction } from '../support/fake.interaction.ts';
+import { fakeSkillTree } from '../support/fake.skill.tree.ts';
 
 const COMMIT = '0123456789abcdef0123456789abcdef01234567';
 const SKILL_MARKDOWN = `---
@@ -108,6 +110,8 @@ describe('CLI skills', () => {
         if (url === `https://raw.githubusercontent.com/vercel-labs/skills/${COMMIT}/skills/find-skills/SKILL.md`) {
           return new Response(SKILL_MARKDOWN, { status: 200 });
         }
+        const tree = fakeSkillTree(url);
+        if (tree) return tree;
         throw new Error(`Unexpected request: ${url}`);
       };
 
@@ -144,6 +148,8 @@ describe('CLI skills', () => {
         if (url === `https://raw.githubusercontent.com/martinholovsky/claude-skills-generator/${COMMIT}/skills/sqlite-database-expert/SKILL.md`) {
           return new Response(SKILL_MARKDOWN, { status: 200 });
         }
+        const tree = fakeSkillTree(url);
+        if (tree) return tree;
         throw new Error(`Unexpected request: ${url}`);
       };
 
@@ -152,7 +158,7 @@ describe('CLI skills', () => {
       assert.equal(results[0]?.name, 'sqlite-database-expert');
       assert.equal(results[0]?.displayName, 'sqlite database expert');
 
-      const code = await runSkillsCli(['add', 'sqlite'], () => {
+      const code = await runSkillsCli(['add', 'sqlite-database-expert'], () => {
         throw new Error('npx should not be used in maia skills');
       }, false, { store });
 
@@ -164,44 +170,78 @@ describe('CLI skills', () => {
     }
   });
 
-  it('falls back to the next catalog entry when the best match is stale', async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-skills-stale-fallback-'));
+  it('fails without a terminal on an ambiguous query and lists exact identifiers', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-skills-ambiguous-'));
     const originalFetch = globalThis.fetch;
     try {
       globalThis.fetch = async (input: RequestInfo | URL) => {
         const url = String(input);
         if (url.includes('/api/search?')) return skillsSearchResponseWithStaleFirst();
-        if (url === 'https://api.github.com/repos/martinholovsky/claude-skills-generator') {
-          return Response.json({ default_branch: 'main' });
-        }
-        if (url === 'https://api.github.com/repos/martinholovsky/claude-skills-generator/commits/main') {
-          return Response.json({ sha: COMMIT });
-        }
-        if (url === `https://raw.githubusercontent.com/martinholovsky/claude-skills-generator/${COMMIT}/skills/sqlite-database-expert/SKILL.md`) {
-          return new Response('missing', { status: 404 });
-        }
-        if (url.startsWith(`https://api.github.com/repos/martinholovsky/claude-skills-generator/git/trees/${COMMIT}?`)) {
-          return Response.json({ tree: [] });
-        }
-        if (url === 'https://api.github.com/repos/rightnow-ai/openfang') {
-          return Response.json({ default_branch: 'main' });
-        }
-        if (url === 'https://api.github.com/repos/rightnow-ai/openfang/commits/main') {
-          return Response.json({ sha: COMMIT });
-        }
-        if (url === `https://raw.githubusercontent.com/rightnow-ai/openfang/${COMMIT}/skills/sqlite-expert/SKILL.md`) {
-          return new Response(SKILL_MARKDOWN, { status: 200 });
-        }
+        const tree = fakeSkillTree(url);
+        if (tree) return tree;
         throw new Error(`Unexpected request: ${url}`);
       };
 
       const store = new AgentCatalogStore({ cwd: tempDir });
-      const code = await runSkillsCli(['add', 'sqlite'], () => {
-        throw new Error('npx should not be used in maia skills');
-      }, false, { store });
+      await assert.rejects(
+        () => runSkillsCli(['add', 'sqlite'], undefined, false, { store, interaction: fakeInteraction() }),
+        (error: Error) => error.message.includes('"sqlite" matches several catalog entries')
+          && error.message.includes('martinholovsky/claude-skills-generator@sqlite-database-expert')
+          && error.message.includes('rightnow-ai/openfang@sqlite-expert'),
+      );
+      assert.equal(existsSync(path.resolve(tempDir, '.maia', 'skills')), false);
+    } finally {
+      globalThis.fetch = originalFetch;
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
 
-      assert.equal(code, 0);
+  it('lets the user choose on a terminal and installs only the chosen entry', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-skills-choose-'));
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('/api/search?')) return skillsSearchResponseWithStaleFirst();
+        if (url === 'https://api.github.com/repos/rightnow-ai/openfang') return Response.json({ default_branch: 'main' });
+        if (url === 'https://api.github.com/repos/rightnow-ai/openfang/commits/main') return Response.json({ sha: COMMIT });
+        if (url === `https://raw.githubusercontent.com/rightnow-ai/openfang/${COMMIT}/skills/sqlite-expert/SKILL.md`) {
+          return new Response(SKILL_MARKDOWN, { status: 200 });
+        }
+        const tree = fakeSkillTree(url);
+        if (tree) return tree;
+        throw new Error(`Unexpected request: ${url}`);
+      };
+
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      const interaction = fakeInteraction({ interactive: true, choose: 2, confirm: false });
+      await runSkillsCli(['add', 'sqlite'], undefined, false, { store, interaction });
+
       assert.ok(existsSync(path.resolve(tempDir, '.maia', 'skills', 'sqlite-expert', 'SKILL.md')));
+      assert.equal(existsSync(path.resolve(tempDir, '.maia', 'skills', 'sqlite-database-expert')), false);
+      assert.deepEqual(store.loadManifest().skills['sqlite-expert']?.allowedLlms, []);
+    } finally {
+      globalThis.fetch = originalFetch;
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('cancelling the choice installs nothing', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-skills-cancel-'));
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('/api/search?')) return skillsSearchResponseWithStaleFirst();
+        const tree = fakeSkillTree(url);
+        if (tree) return tree;
+        throw new Error(`Unexpected request: ${url}`);
+      };
+
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      const code = await runSkillsCli(['add', 'sqlite'], undefined, false, { store, interaction: fakeInteraction({ interactive: true, choose: 0 }) });
+      assert.equal(code, 0);
+      assert.equal(existsSync(path.resolve(tempDir, '.maia', 'skills')), false);
     } finally {
       globalThis.fetch = originalFetch;
       rmSync(tempDir, { recursive: true, force: true });
@@ -229,6 +269,8 @@ describe('CLI skills', () => {
         if (url === `https://raw.githubusercontent.com/vercel-labs/skills/${COMMIT}/skills/find-skills/SKILL.md`) {
           return new Response(SKILL_MARKDOWN, { status: 200 });
         }
+        const tree = fakeSkillTree(url);
+        if (tree) return tree;
         throw new Error(`Unexpected request: ${url}`);
       };
 
@@ -252,6 +294,37 @@ describe('CLI skills', () => {
 
       assert.equal(code, 0);
       assert.ok(existsSync(path.resolve(tempDir, '.maia', 'skills', 'find-skills', 'SKILL.md')));
+    } finally {
+      globalThis.fetch = originalFetch;
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('installs the whole skill folder, supporting files included', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-skills-folder-'));
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === 'https://api.github.com/repos/acme/skills') return Response.json({ default_branch: 'main' });
+        if (url === 'https://api.github.com/repos/acme/skills/commits/main') return Response.json({ sha: COMMIT });
+        if (url.startsWith(`https://api.github.com/repos/acme/skills/git/trees/${COMMIT}`)) {
+          return Response.json({ tree: ['SKILL.md', 'references/injection.md', 'scripts/check.sh']
+            .map((file) => ({ type: 'blob', mode: '100644', path: `skills/review/${file}` })) });
+        }
+        const raw = `https://raw.githubusercontent.com/acme/skills/${COMMIT}/skills/review/`;
+        if (url.startsWith(raw)) return new Response(`# ${url.slice(raw.length)}`);
+        throw new Error(`Unexpected request: ${url}`);
+      };
+
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      await runSkillsCli(['add', 'acme/skills@review', '--all-llms'], undefined, false, { store, interaction: fakeInteraction() });
+
+      const folder = path.resolve(tempDir, '.maia', 'skills', 'review');
+      for (const file of ['SKILL.md', 'references/injection.md', 'scripts/check.sh']) {
+        assert.ok(existsSync(path.join(folder, file)), `missing ${file}`);
+      }
+      assert.equal(store.loadManifest().skills.review?.path, 'skills/review');
     } finally {
       globalThis.fetch = originalFetch;
       rmSync(tempDir, { recursive: true, force: true });

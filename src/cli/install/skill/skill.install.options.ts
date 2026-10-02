@@ -13,4 +13,6 @@ export interface SkillInstallOptions {
   source: string;
   version: string;
   allowedLlms: string[];
+  /** Name of the skill at its source, when installed under another local name (`--as`). */
+  sourceName?: string;
 }

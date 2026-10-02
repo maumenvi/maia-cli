@@ -248,16 +248,16 @@ describe('MCP Registry provider', () => {
     const originalFetch = globalThis.fetch;
     try {
       globalThis.fetch = async (input: RequestInfo | URL) => {
-        assert.equal(
-          String(input),
-          'https://registry.modelcontextprotocol.io/v0.1/servers?search=filesystem&version=latest&limit=10',
-        );
+        assert.ok(String(input).startsWith('https://registry.modelcontextprotocol.io/v0.1/servers?search='));
         return registryResponse();
       };
 
       const store = new AgentCatalogStore({ cwd: tempDir });
       store.saveSelectedAgents(['copilot']);
-      await installCommand(['mcp', 'filesystem'], { store });
+      // A partial name ('filesystem') is ambiguous without a terminal; the
+      // canonical registry name installs directly.
+      await assert.rejects(() => installCommand(['mcp', 'filesystem'], { store }), /matches several catalog entries/);
+      await installCommand(['mcp', 'io.github.example/filesystem'], { store });
 
       assert.ok(store.loadLock()?.packages['mcp:io.github.example/filesystem']);
       assert.ok(existsSync(path.resolve(tempDir, '.vscode', 'mcp.json')));

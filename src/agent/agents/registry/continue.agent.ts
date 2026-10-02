@@ -1,7 +1,6 @@
 import { join } from 'node:path';
 
 import type { AgentTarget } from '../contracts/agent.target.ts';
-import { mcpEntry } from './mcp.entry.ts';
 
 /** Defines the continue agent value. */
 export const continueAgent: AgentTarget = {
@@ -12,7 +11,7 @@ export const continueAgent: AgentTarget = {
   configPaths(cwd) {
     return [join(cwd, '.continue', 'config.json')];
   },
-  buildEntry: mcpEntry,
+  projectDir: 'omit',
   instructionsFile(cwd) {
     return join(cwd, 'AGENTS.md');
   },

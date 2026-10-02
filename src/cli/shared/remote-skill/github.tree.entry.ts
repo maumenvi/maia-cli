@@ -2,5 +2,6 @@
 export interface GitHubTreeEntry {
   path?: string;
   type?: string;
+  /** Git file mode; `120000` marks a symbolic link. */
+  mode?: string;
 }
-

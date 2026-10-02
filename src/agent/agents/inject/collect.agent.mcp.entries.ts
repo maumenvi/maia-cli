@@ -1,6 +1,7 @@
 import type { AgentCatalogStore } from '../../catalog/store/agent.catalog.store.ts';
 import type { AgentMcpEntry } from '../contracts/agent.mcp.entry.ts';
 import type { AgentTarget } from '../contracts/agent.target.ts';
+import { mcpEntry } from '../registry/mcp.entry.ts';
 
 /**
  * Build the MCP entries registered natively for one agent.
@@ -13,7 +14,6 @@ import type { AgentTarget } from '../contracts/agent.target.ts';
  * producing spawn failures and a credential the server never receives.
  * Registering both also exposed every tool twice.
  */
-export function collectAgentMcpEntries(store: AgentCatalogStore, target: AgentTarget): AgentMcpEntry[] {
-  const projectRoot = store.getPaths().projectRoot;
-  return [target.buildEntry(projectRoot, target.id)];
+export function collectAgentMcpEntries(_store: AgentCatalogStore, target: AgentTarget): AgentMcpEntry[] {
+  return [mcpEntry(target.id, target.projectDir)];
 }

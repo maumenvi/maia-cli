@@ -6,6 +6,7 @@ import { findRegistryEntry } from '../registry/read/find.registry.entry.ts';
 import { packageKey } from '../shared/hash/package.key.ts';
 import { dependencySectionForKind } from '../shared/sections.ts';
 import type { CatalogKind } from '../types/kinds.ts';
+import { manifestHasDirectorySkills } from './schema/manifest.has.directory.skills.ts';
 import type { SourceLock } from '../types/lock/source.lock.ts';
 import type { SourcesManifest } from '../types/manifest/sources.manifest.ts';
 import { createPackageDescriptor } from './package.descriptor.ts';
@@ -67,11 +68,11 @@ export function buildLockFromManifest(
   const toolkits = buildToolkitLockEntries(manifest.toolkits ?? {}, agentIds, toolkitCatalog);
   const hasToolkits = Object.keys(toolkits).length > 0;
 
-  // Version 2 only when toolkits exist: an older CLI then fails loudly
-  // instead of silently skipping them, while toolkit-free locks keep v1.
+  // Each newer shape bumps the version so an older CLI fails loudly instead
+  // of misreading it: 3 for skill folders (per-file hashes), 2 for toolkits.
   return {
     name: manifest.name,
-    lockfileVersion: hasToolkits ? 2 : 1,
+    lockfileVersion: manifestHasDirectorySkills(manifest) ? 3 : hasToolkits ? 2 : 1,
     sources,
     packages,
     ...(hasToolkits ? { toolkits } : {}),

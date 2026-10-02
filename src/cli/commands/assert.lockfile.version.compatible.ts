@@ -1,8 +1,8 @@
 import { isLockfileVersionCompatible } from '../../agent/catalog/lock/schema/is.lockfile.version.compatible.ts';
 import { LockfileVersionCompatibilityError } from './lockfile.version.compatibility.error.ts';
 
-/** Lockfile schema versions this CLI reads: 1, and 2 when toolkits are pinned. */
-const SUPPORTED_LOCKFILE_VERSIONS: readonly number[] = [1, 2];
+/** Lockfile schema versions this CLI reads: 1, 2 when toolkits are pinned, 3 with skill folders. */
+const SUPPORTED_LOCKFILE_VERSIONS: readonly number[] = [1, 2, 3];
 
 /**
  * Throws `LockfileVersionCompatibilityError` when a lockfile declares a

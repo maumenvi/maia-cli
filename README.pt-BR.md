@@ -94,6 +94,7 @@ O Maia é útil em cenários como:
   - [Instalação estilo npm](#instalação-estilo-npm)
   - [Lock e contexto](#lock-e-contexto)
   - [Outros comandos](#outros-comandos)
+- [Erros conhecidos](#erros-conhecidos)
 - [Mais documentação](#mais-documentação)
 
 ## Requisitos
@@ -169,11 +170,18 @@ O CLI pode descobrir skills por meio de:
 - `provider: "skills.sh"` (`https://skills.sh`)
 - `provider: "github-skills"` (`https://api.github.com`)
 
-Comportamento de resiliência:
+Instalar a partir de uma busca é sempre uma escolha explícita:
 
-- usa o identificador canônico para instalar uma skill;
-- se uma entrada estiver stale ou indisponível, `maia skills add <query>` tenta automaticamente o próximo resultado;
-- em `maia skills find`, você pode selecionar outra opção se a origem escolhida falhar.
+- um identificador exato (`owner/repo@skill`, ou um nome que corresponde a exatamente um resultado) instala direto;
+- qualquer outro termo lista os candidatos, cada um marcado `[trusted]` ou `[untrusted]`, e instala só o que você escolher (`0` cancela);
+- sem terminal interativo (CI, pipes, agentes), um termo ambíguo falha e mostra os identificadores exatos; o Maia nunca instala o primeiro resultado da busca;
+- `--help`/`-h` em qualquer comando só mostra a ajuda: nunca busca no catálogo nem instala nada.
+
+Uma skill é instalada como **pasta completa**: `SKILL.md` e todos os arquivos de apoio (`references/`, `scripts/`, assets), em `.maia/skills/<nome>/` e no diretório nativo de skills do agente. O `maia.lock.json` registra um hash por arquivo (lockfile versão 3), então o `maia verify` aponta qual arquivo sumiu, mudou ou sobrou, e o `maia ci` restaura a pasta inteira. Limites: 200 arquivos e 5 MB por skill; caminhos que saem da pasta e symlinks são recusados. Rodar `maia i` atualiza skills instaladas por versões antigas (só `SKILL.md`) para a pasta completa.
+
+Se uma skill tem o nome de um comando nativo de um agente configurado (por exemplo `security-review` no Claude Code), o Maia avisa; instale com outro nome usando `--as <nome>`.
+
+Capacidades de fonte **não confiável** não são autorizadas para nenhum agente sem consentimento: com terminal, o Maia pergunta (o padrão é *não*); sem terminal, instala sem acesso para agentes e orienta rodar de novo com `--all-llms` (ou `--llms <ids>`).
 
 ### MCP
 
@@ -192,7 +200,7 @@ Em `maia mcp find`:
 - mostra `Requer chave/token: ...`;
 - mostra `Onde obter: ...` quando o metadata do registry inclui descrição ou URL.
 
-Em `maia mcp add` (ou instalação por seleção no `find`):
+Em `maia mcp add` / `maia mcp i` (ou instalação por seleção no `find`):
 
 - detecta as variáveis necessárias;
 - pede os valores sem exibir os segredos no terminal interativo;
@@ -200,7 +208,11 @@ Em `maia mcp add` (ou instalação por seleção no `find`):
 - preserva entradas customizadas e remove defaults auto-gerados obsoletos dos templates antigos;
 - recompõe essas variáveis de MCP durante `maia install` e `maia ci` a partir do `maia.lock.json`, sem sobrescrever o `.env` real do projeto.
 
-Abrir um transporte MCP lê somente `.maia/mcp.env`; o `.env` do projeto não é carregado nem modificado. O Maia mantém o manifesto e o lock em `maia.json` e `maia.lock.json`, e as capacidades de fallback em `.maia/mcp`, `.maia/skills` e `.maia/tools`, além dos perfis de autorização em `.maia/agents`.
+#### Credenciais globais (`--env-g`)
+
+Credenciais usadas em vários projetos podem ficar num arquivo do usuário: `maia mcp i <nome> --env-g` (também `-env-g` / `--env-global`, e no `maia mcp find`) grava os valores pedidos em `${XDG_CONFIG_HOME:-~/.config}/maia/mcp.env` (`%APPDATA%\maia\mcp.env` no Windows; `MAIA_CONFIG_HOME` sobrescreve), criado legível só por você (`0600`). Uma variável que já tem valor global não é pedida de novo, e nenhum placeholder vazio é criado no projeto para ela. Quando um MCP sobe, os valores seguem a ordem **ambiente do processo > `.maia/mcp.env` do projeto > arquivo global**; uma entrada vazia no projeto nunca esconde o valor global.
+
+Abrir um transporte MCP lê somente `.maia/mcp.env` e o arquivo global; o `.env` do projeto não é carregado nem modificado. O Maia mantém o manifesto e o lock em `maia.json` e `maia.lock.json`, e as capacidades de fallback em `.maia/mcp`, `.maia/skills` e `.maia/tools`, além dos perfis de autorização em `.maia/agents`.
 
 Cada bootstrap nativo executa `maia mcp-server --agent <id>`. Essa identidade permite que o MCP agregado exponha somente skills, tools e MCPs autorizados para o agente selecionado. Arquivos nativos obrigatórios, como `.vscode/mcp.json` ou `.codex/config.toml`, permanecem nos caminhos exigidos pelos clientes; todo o estado pertencente ao Maia fica em `.maia/`.
 
@@ -208,13 +220,19 @@ O `configureAgents` grava o proxy `maia` e as capacidades autorizadas nos locais
 
 | Agente | Config MCP | Skills | Instruções |
 | --- | --- | --- | --- |
-| Claude | `.mcp.json` (fallback `.claude/claude_desktop_config.json`) | `.claude/skills/<nome>/SKILL.md` | `CLAUDE.md` |
-| VS Code Copilot | `.vscode/mcp.json` | — | `.github/copilot-instructions.md` |
-| Cursor | `.cursor/mcp.json` | — | `.cursor/rules/maia.mdc` |
+| Claude | `.mcp.json` | `.claude/skills/<nome>/` | `CLAUDE.md` |
+| VS Code Copilot | `.vscode/mcp.json` | `.github/skills/<nome>/` | `.github/copilot-instructions.md` |
+| Cursor ⚠️ | `.cursor/mcp.json` | — | `.cursor/rules/maia.mdc` |
 | Zed | `.zed/settings.json` | — | `AGENTS.md` |
-| Cline | `.cline/mcp.json` | — | `.clinerules/maia.md` |
-| Continue | `.continue/config.json` | — | `AGENTS.md` |
+| Cline ⚠️ | `.cline/mcp.json` | — | `.clinerules/maia.md` |
+| Continue ⚠️ | `.continue/config.json` | — | `AGENTS.md` |
 | OpenAI Codex | `.codex/config.toml` | — | `AGENTS.md` |
+
+⚠️ Veja [Erros conhecidos](#erros-conhecidos): o registro nesses agentes pode ainda não ter efeito.
+
+Nenhum arquivo de projeto escrito para um agente contém caminho da máquina, então eles podem ser versionados e compartilhados. Copilot e Cursor recebem `"cwd": "${workspaceFolder}"`; os demais agentes iniciam os servidores dentro do projeto, e o `maia mcp-server` encontra o projeto sozinho: por `CLAUDE_PROJECT_DIR` (definida pelo Claude Code) ou subindo a partir da pasta em que foi iniciado. Fora de qualquer projeto ele termina com erro, em vez de criar `.maia/` ali.
+
+No Claude Code, o proxy é registrado em `.mcp.json` (o Claude Code pede para aprovar servidores de projeto na primeira vez). Projetos configurados por versões antigas do Maia tinham o registro em `.claude/claude_desktop_config.json`, que o Claude Code nunca lê: o próximo `maia i`, `maia init claude` ou `maia mcp add` move a entrada `maia` para `.mcp.json` e preserva as suas outras entradas. Um `.mcp.json` inválido nunca é sobrescrito. O bloco de instruções só afirma que o proxy está registrado quando isso de fato aconteceu, e cita o arquivo.
 
 Somente as capacidades autorizadas para o agente (via `allowedLlms` / `llmAccessDefault`) são entregues, e o bloco de instruções fica entre os marcadores `<!-- maia:capabilities:start -->` / `<!-- maia:capabilities:end -->`, de modo que reexecuções nunca duplicam nem sobrescrevem o seu conteúdo.
 
@@ -256,7 +274,7 @@ vez de ignorá-los. Projetos sem toolkits continuam com `lockfileVersion: 1`.
 
 ## Segurança e confiança das fontes
 
-Fontes remotas são consideradas não confiáveis por padrão. O campo `trusted` registra uma decisão revisada de procedência; ele não cria sandbox nem certifica um pacote. Entradas stdio e NPX executam com as permissões do usuário do sistema operacional, embora o Maia limite as variáveis de ambiente herdadas.
+Fontes remotas são consideradas não confiáveis por padrão, e instalar a partir delas nunca autoriza agentes sem o seu consentimento (veja [Skills](#skills)). O campo `trusted` registra uma decisão revisada de procedência; ele não cria sandbox nem certifica um pacote. Entradas stdio e NPX executam com as permissões do usuário do sistema operacional, embora o Maia limite as variáveis de ambiente herdadas.
 
 Revise comandos executáveis e dependências, prefira refs imutáveis, fixe versões, restrinja credenciais e acesso de LLMs e use um ambiente isolado e de menor privilégio no CI. Consulte a [política completa de segurança e confiança](./SECURITY.md).
 
@@ -298,17 +316,19 @@ Os agentes selecionados são sempre persistidos em `maia.json`; nenhuma flag adi
 ### Skills
 
 ```bash
-maia skills find <query>
-maia skills add <skill-name|owner/repo@skill>
+maia skills find <query> [--all-llms | --llms <ids>]
+maia skills add <skill-name|owner/repo@skill> [--as <nome>] [--all-llms | --llms <ids>]
 ```
 
 ### MCP
 
 ```bash
-maia mcp find <query>
-maia mcp add <name>
+maia mcp find <query> [--env-g] [--all-llms | --llms <ids>]
+maia mcp i|add|install <name> [--env-g] [--all-llms | --llms <ids>]
 maia mcp sync
 ```
+
+Todo comando aceita `--help` / `-h`.
 
 ### Instalação estilo npm
 
@@ -371,6 +391,23 @@ maia rm <skill|mcp|tool> <name>
 maia guardrail check <caminho...>
 maia version
 ```
+
+## Erros conhecidos
+
+Problemas em aberto encontrados ao corrigir o registro no Claude Code na 1.7.0. Eles vão virar uma especificação própria; até lá, use os contornos abaixo.
+
+| Área | Problema | Contorno |
+| --- | --- | --- |
+| Cursor | O Maia grava o proxy na chave `servers` do `.cursor/mcp.json`, mas o Cursor lê `mcpServers`, então o servidor `maia` provavelmente não aparece. | Edite o `.cursor/mcp.json` e renomeie a chave `servers` para `mcpServers`. |
+| Cline | O Cline lê servidores MCP só do arquivo global `cline_mcp_settings.json`; o `.cline/mcp.json` que o Maia grava no projeto não tem efeito. | Copie a entrada `maia` do `.cline/mcp.json` para as configurações de MCP do Cline, com `cwd` apontando para a pasta do projeto. |
+| Continue | O Maia grava `.continue/config.json`; o Continue atual usa YAML (`.continue/mcpServers/*.yaml`). | Crie `.continue/mcpServers/maia.yaml` listando um servidor MCP (`name: maia`, `command: maia`, `args: [mcp-server, --agent, continue]`). |
+| OpenAI Codex | O `.codex/config.toml` do projeto só vale quando o Codex confia no projeto. | Marque o projeto como confiável no Codex. |
+| Zed | O formato do registro e a pasta de início não foram verificados numa sessão real do Zed. | Relate o que observar. |
+| Skills `.well-known` | Arquivos publicados como `.zip` não são descompactados; só o `SKILL.md` é instalado, com aviso. | Peça ao publicador um `.tar.gz` ou instale a partir do repositório Git. |
+| Lockfile v3 | Versões do Maia anteriores à 1.7.0 recusam o `maia.lock.json` com skills de pasta (`lockfileVersion: 3`). | Atualize o Maia em todas as máquinas e no CI ao mesmo tempo. |
+| `maia mcp sync` | Sincroniza só o `.vscode/mcp.json`; os outros agentes não são atualizados. | Rode `maia i` para atualizar todos os agentes configurados. |
+
+Nenhuma das linhas de agentes acima foi reproduzida com o agente real ainda; elas vêm do código do Maia e da documentação pública de cada agente.
 
 ## Mais documentação
 
