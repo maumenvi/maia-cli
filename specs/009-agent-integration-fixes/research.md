@@ -176,10 +176,13 @@ mas fica registrado como risco a avaliar no review.
     `skills/<nome>/` também passa pela árvore para listar os irmãos.
   - **git genérico**: `git ls-tree -r --name-only FETCH_HEAD -- <pasta>` e `git show` de cada
     arquivo, no mesmo clone temporário.
-  - **well-known**: o padrão de descoberta publica `/.well-known/skills/index.json`. Quando a
-    entrada da skill lista `files`, baixar cada um; senão, só `SKILL.md`, com o aviso `Only
-    SKILL.md is available from <url>; supporting files were not published.`. A verificação do
-    formato exato do `index.json` fica para a implementação, com fixture.
+  - **well-known** (conferido em 2026-10-02 na [RFC da Cloudflare](https://github.com/cloudflare/agent-skills-discovery-rfc)):
+    o índice atual é `/.well-known/agent-skills/index.json` (schema 0.2.0), com cada skill
+    como `type: "skill-md"` (só `SKILL.md`) ou `type: "archive"` (pasta inteira empacotada),
+    e um `digest` sha256 em cada entrada. O Maia lê `agent-skills/` e depois `skills/`.
+    Para `archive` `.tar.gz`, baixa o arquivo, confere o digest, descompacta (parser tar
+    próprio, sem dependência) e recusa links. Também aceita o formato antigo, com `files`. Sem
+    índice, baixa só `SKILL.md` e avisa. Archive `.zip` fica fora do escopo e cai no fallback.
 - **Limites (FR-015)**: no máximo **200 arquivos** e **5 MB** no total por skill. Acima disso,
   falha com `Skill "<nome>" exceeds the size limit (<n> files, <m> MB)`. Caminhos com `..`,
   absolutos ou symlinks (`mode 120000` no git) são rejeitados.
