@@ -36,7 +36,7 @@ export async function reinstallFromLock(store: Pick<AgentCatalogStore, 'getPaths
           }
           return materializeRemoteSkill(
             store,
-            pkg.name,
+            pkg.sourceName ?? pkg.name,
             {
               ...source,
               ref: source.type === 'git' ? source.commit : (source.ref ?? source.commit),
