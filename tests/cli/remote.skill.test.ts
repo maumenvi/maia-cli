@@ -6,6 +6,7 @@ import { describe, it } from 'node:test';
 
 import { AgentCatalogStore } from '../../src/agent/catalog/store/agent.catalog.store.ts';
 import { installCommand } from '../../src/cli/commands/install/install.command.ts';
+import { fakeSkillTree } from '../support/fake.skill.tree.ts';
 
 const FIND_SKILLS_MARKDOWN = `---
 name: find-skills
@@ -37,6 +38,8 @@ describe('Remote skill install', () => {
         if (url === 'https://api.github.com/repos/vercel-labs/skills/commits/main') {
           return Response.json({ sha: COMMIT });
         }
+        const tree = fakeSkillTree(url);
+        if (tree) return tree;
         assert.equal(url, `https://raw.githubusercontent.com/vercel-labs/skills/${COMMIT}/skills/find-skills/SKILL.md`);
         return new Response(FIND_SKILLS_MARKDOWN, { status: 200, headers: { 'content-type': 'text/plain' } });
       };
@@ -48,9 +51,9 @@ describe('Remote skill install', () => {
       const pkg = lock?.packages['skill:find-skills'];
       assert.ok(pkg);
       assert.equal(pkg?.source, 'skillsHub');
-      assert.equal(pkg?.path, 'skills/find-skills/SKILL.md');
+      assert.equal(pkg?.path, 'skills/find-skills');
 
-      const installedPath = path.resolve(tempDir, '.maia', pkg?.path ?? '');
+      const installedPath = path.resolve(tempDir, '.maia', pkg?.path ?? '', 'SKILL.md');
       assert.ok(existsSync(installedPath));
       assert.ok(readFileSync(installedPath, 'utf8').includes('# Find Skills'));
     } finally {
@@ -91,6 +94,8 @@ describe('Remote skill install', () => {
         if (url === `https://raw.githubusercontent.com/martinholovsky/claude-skills-generator/${COMMIT}/skills/sqlite/SKILL.md`) {
           return new Response(FIND_SKILLS_MARKDOWN, { status: 200, headers: { 'content-type': 'text/plain' } });
         }
+        const tree = fakeSkillTree(url);
+        if (tree) return tree;
         throw new Error(`Unexpected request: ${url}`);
       };
 
@@ -100,7 +105,7 @@ describe('Remote skill install', () => {
       assert.ok(lock);
       const pkg = lock?.packages['skill:sqlite-database-expert'];
       assert.ok(pkg);
-      const installedPath = path.resolve(tempDir, '.maia', pkg?.path ?? '');
+      const installedPath = path.resolve(tempDir, '.maia', pkg?.path ?? '', 'SKILL.md');
       assert.ok(existsSync(installedPath));
       assert.ok(readFileSync(installedPath, 'utf8').includes('# Find Skills'));
     } finally {

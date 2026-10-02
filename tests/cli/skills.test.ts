@@ -8,6 +8,7 @@ import { AgentCatalogStore } from '../../src/agent/catalog/store/agent.catalog.s
 import { discoverSkillsFromStore } from '../../src/cli/commands/skills/discover.skills.from.store.ts';
 import { runSkillsCli } from '../../src/cli/commands/skills/run.skills.cli.ts';
 import { fakeInteraction } from '../support/fake.interaction.ts';
+import { fakeSkillTree } from '../support/fake.skill.tree.ts';
 
 const COMMIT = '0123456789abcdef0123456789abcdef01234567';
 const SKILL_MARKDOWN = `---
@@ -109,6 +110,8 @@ describe('CLI skills', () => {
         if (url === `https://raw.githubusercontent.com/vercel-labs/skills/${COMMIT}/skills/find-skills/SKILL.md`) {
           return new Response(SKILL_MARKDOWN, { status: 200 });
         }
+        const tree = fakeSkillTree(url);
+        if (tree) return tree;
         throw new Error(`Unexpected request: ${url}`);
       };
 
@@ -145,6 +148,8 @@ describe('CLI skills', () => {
         if (url === `https://raw.githubusercontent.com/martinholovsky/claude-skills-generator/${COMMIT}/skills/sqlite-database-expert/SKILL.md`) {
           return new Response(SKILL_MARKDOWN, { status: 200 });
         }
+        const tree = fakeSkillTree(url);
+        if (tree) return tree;
         throw new Error(`Unexpected request: ${url}`);
       };
 
@@ -172,6 +177,8 @@ describe('CLI skills', () => {
       globalThis.fetch = async (input: RequestInfo | URL) => {
         const url = String(input);
         if (url.includes('/api/search?')) return skillsSearchResponseWithStaleFirst();
+        const tree = fakeSkillTree(url);
+        if (tree) return tree;
         throw new Error(`Unexpected request: ${url}`);
       };
 
@@ -201,6 +208,8 @@ describe('CLI skills', () => {
         if (url === `https://raw.githubusercontent.com/rightnow-ai/openfang/${COMMIT}/skills/sqlite-expert/SKILL.md`) {
           return new Response(SKILL_MARKDOWN, { status: 200 });
         }
+        const tree = fakeSkillTree(url);
+        if (tree) return tree;
         throw new Error(`Unexpected request: ${url}`);
       };
 
@@ -224,6 +233,8 @@ describe('CLI skills', () => {
       globalThis.fetch = async (input: RequestInfo | URL) => {
         const url = String(input);
         if (url.includes('/api/search?')) return skillsSearchResponseWithStaleFirst();
+        const tree = fakeSkillTree(url);
+        if (tree) return tree;
         throw new Error(`Unexpected request: ${url}`);
       };
 
@@ -258,6 +269,8 @@ describe('CLI skills', () => {
         if (url === `https://raw.githubusercontent.com/vercel-labs/skills/${COMMIT}/skills/find-skills/SKILL.md`) {
           return new Response(SKILL_MARKDOWN, { status: 200 });
         }
+        const tree = fakeSkillTree(url);
+        if (tree) return tree;
         throw new Error(`Unexpected request: ${url}`);
       };
 
@@ -281,6 +294,37 @@ describe('CLI skills', () => {
 
       assert.equal(code, 0);
       assert.ok(existsSync(path.resolve(tempDir, '.maia', 'skills', 'find-skills', 'SKILL.md')));
+    } finally {
+      globalThis.fetch = originalFetch;
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('installs the whole skill folder, supporting files included', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-skills-folder-'));
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === 'https://api.github.com/repos/acme/skills') return Response.json({ default_branch: 'main' });
+        if (url === 'https://api.github.com/repos/acme/skills/commits/main') return Response.json({ sha: COMMIT });
+        if (url.startsWith(`https://api.github.com/repos/acme/skills/git/trees/${COMMIT}`)) {
+          return Response.json({ tree: ['SKILL.md', 'references/injection.md', 'scripts/check.sh']
+            .map((file) => ({ type: 'blob', mode: '100644', path: `skills/review/${file}` })) });
+        }
+        const raw = `https://raw.githubusercontent.com/acme/skills/${COMMIT}/skills/review/`;
+        if (url.startsWith(raw)) return new Response(`# ${url.slice(raw.length)}`);
+        throw new Error(`Unexpected request: ${url}`);
+      };
+
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      await runSkillsCli(['add', 'acme/skills@review', '--all-llms'], undefined, false, { store, interaction: fakeInteraction() });
+
+      const folder = path.resolve(tempDir, '.maia', 'skills', 'review');
+      for (const file of ['SKILL.md', 'references/injection.md', 'scripts/check.sh']) {
+        assert.ok(existsSync(path.join(folder, file)), `missing ${file}`);
+      }
+      assert.equal(store.loadManifest().skills.review?.path, 'skills/review');
     } finally {
       globalThis.fetch = originalFetch;
       rmSync(tempDir, { recursive: true, force: true });

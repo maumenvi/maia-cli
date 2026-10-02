@@ -7,6 +7,7 @@ import { describe, it } from 'node:test';
 import { AgentCatalogStore } from '../../src/agent/catalog/store/agent.catalog.store.ts';
 import { ciCommand } from '../../src/cli/commands/ci.ts';
 import { installCommand } from '../../src/cli/commands/install/install.command.ts';
+import { fakeSkillTree } from '../support/fake.skill.tree.ts';
 
 const SKILL_MARKDOWN = `---
 name: find-skills
@@ -43,6 +44,8 @@ describe('CLI ci', () => {
         if (/^https:\/\/raw\.githubusercontent\.com\/vercel-labs\/skills\/[0-9a-f]{40}\/skills\/find-skills\/SKILL\.md$/i.test(url)) {
           return new Response(SKILL_MARKDOWN, { status: 200 });
         }
+        const tree = fakeSkillTree(url);
+        if (tree) return tree;
         throw new Error(`Unexpected request: ${url}`);
       };
 
@@ -53,11 +56,12 @@ describe('CLI ci', () => {
       assert.ok(lock);
       const skillPackage = lock?.packages['skill:find-skills'];
       assert.ok(skillPackage);
-      const skillPath = path.resolve(tempDir, '.maia', skillPackage?.path ?? '');
+      const skillDir = path.resolve(tempDir, '.maia', skillPackage?.path ?? '');
+      const skillPath = path.join(skillDir, 'SKILL.md');
       const vscodeMcpPath = path.resolve(tempDir, '.vscode', 'mcp.json');
       const profilePath = path.resolve(tempDir, '.maia', 'agents', 'copilot', 'capabilities.json');
 
-      rmSync(skillPath, { force: true });
+      rmSync(skillDir, { recursive: true, force: true });
       rmSync(vscodeMcpPath, { force: true });
       rmSync(profilePath, { force: true });
 
@@ -280,6 +284,8 @@ describe('CLI ci', () => {
         if (url === 'https://api.github.com/repos/vercel-labs/skills/commits/main') {
           return Response.json({ sha: COMMIT });
         }
+        const tree = fakeSkillTree(url);
+        if (tree) return tree;
         throw new Error(`Unexpected request: ${url}`);
       };
 
@@ -289,11 +295,12 @@ describe('CLI ci', () => {
       assert.ok(lock);
       const skillPath = path.resolve(tempDir, '.maia', lock.packages['skill:find-skills'].path);
       assert.ok(existsSync(skillPath));
+      // The skill is a folder now; remove it whole.
 
       // Remove the artifact so ci has to re-materialize it. Let the fetch
       // succeed for the first request (so the file is written) and then fail,
       // interrupting the restore after it already materialized something.
-      rmSync(skillPath, { force: true });
+      rmSync(skillPath, { recursive: true, force: true });
       let skillFetches = 0;
       globalThis.fetch = async (input: RequestInfo | URL) => {
         const url = String(input);
@@ -307,6 +314,8 @@ describe('CLI ci', () => {
         if (url === 'https://api.github.com/repos/vercel-labs/skills/commits/main') {
           return Response.json({ sha: COMMIT });
         }
+        const tree = fakeSkillTree(url);
+        if (tree) return tree;
         throw new Error(`Unexpected request: ${url}`);
       };
 
@@ -315,7 +324,7 @@ describe('CLI ci', () => {
       assert.ok(existsSync(skillPath));
 
       // Now break it and make ci fail mid-restore.
-      rmSync(skillPath, { force: true });
+      rmSync(skillPath, { recursive: true, force: true });
       await assert.rejects(
         () => ciCommand([], { store }),
         /unreachable|simulated interruption after materialization/,

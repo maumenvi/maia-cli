@@ -27,7 +27,9 @@ export async function reinstallFromLock(store: Pick<AgentCatalogStore, 'getPaths
     Object.values(lock.packages)
       .filter((pkg) => pkg.type === 'skill' && pkg.enabled)
       .map(async (pkg) => {
-        if (pkg.path.toLowerCase().endsWith('skill.md')) {
+        // Remote skills (a folder, or the older single SKILL.md) are fetched
+        // again from the pinned source; only local registry skills are copied.
+        if (pkg.source !== 'local' || pkg.path.toLowerCase().endsWith('skill.md')) {
           const source = lock.sources[pkg.source];
           if (!source) {
             throw new Error(`Missing source "${pkg.source}" for skill "${pkg.name}"`);

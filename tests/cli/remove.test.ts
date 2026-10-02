@@ -7,6 +7,7 @@ import { describe, it } from 'node:test';
 import { AgentCatalogStore } from '../../src/agent/catalog/store/agent.catalog.store.ts';
 import { installCommand } from '../../src/cli/commands/install/install.command.ts';
 import { removeCommand } from '../../src/cli/commands/remove.ts';
+import { fakeSkillTree } from '../support/fake.skill.tree.ts';
 
 const COMMIT = '0123456789abcdef0123456789abcdef01234567';
 const SKILL_MARKDOWN = `---
@@ -101,6 +102,8 @@ describe('CLI remove', () => {
         if (url === 'https://api.github.com/repos/vercel-labs/skills/commits/main') {
           return Response.json({ sha: COMMIT });
         }
+        const tree = fakeSkillTree(url);
+        if (tree) return tree;
         throw new Error(`Unexpected request: ${url}`);
       };
 
@@ -139,6 +142,8 @@ describe('CLI remove', () => {
         if (url === 'https://api.github.com/repos/vercel-labs/skills/commits/main') {
           return Response.json({ sha: COMMIT });
         }
+        const tree = fakeSkillTree(url);
+        if (tree) return tree;
         throw new Error(`Unexpected request: ${url}`);
       };
 
