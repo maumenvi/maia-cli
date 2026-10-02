@@ -183,7 +183,7 @@ D11; contracts/env.global.md).
   - `maia i` (`reinstallFromLock`) não cria `X_TOKEN=` no projeto.
 
   Depende de T010, T021, T022.
-- [ ] T024 [US5] Em `src/cli/commands/mcp/mcp.command.ts`: aceitar `i` como `add`/`install`. Criar `src/cli/shared/flags/normalize.legacy.flags.ts` com a função pura `normalizeLegacyFlags(args)` (`-env-g` → `--env-g`; `--env-global` → `--env-g`) e aplicá-la antes de `parseFlags`. `add|i|install|find` repassam `envScope: flags['env-g']==='true' ? 'global' : 'project'`, e a query não inclui flags. Testes: `tests/shared/normalize.legacy.flags.test.ts`; `tests/cli/mcp.env.global.flag.test.ts` com `mcp i <exato> -env-g` → credenciais no global, e `mcp find <termo> --env-g` com `interaction.select` falso → idem. Depende de T012, T023.
+- [X] T024 [US5] Em `src/cli/commands/mcp/mcp.command.ts`: aceitar `i` como `add`/`install`. Criar `src/cli/shared/flags/normalize.legacy.flags.ts` com a função pura `normalizeLegacyFlags(args)` (`-env-g` → `--env-g`; `--env-global` → `--env-g`) e aplicá-la antes de `parseFlags`. `add|i|install|find` repassam `envScope: flags['env-g']==='true' ? 'global' : 'project'`, e a query não inclui flags. Testes: `tests/shared/normalize.legacy.flags.test.ts`; `tests/cli/mcp.env.global.flag.test.ts` com `mcp i <exato> -env-g` → credenciais no global, e `mcp find <termo> --env-g` com `interaction.select` falso → idem. Depende de T012, T023.
 
 **Checkpoint**: a funcionalidade nova está pronta.
 

@@ -12,5 +12,5 @@ export function ensureLockMcpEnvFileEntries(
   const names = Object.values(lock.packages)
     .filter((pkg) => pkg.type === 'mcp')
     .flatMap((pkg) => collectReferencedEnvNames(pkg.vscode));
-  ensureEnvFileEntries(store.getPaths().mcpEnv, names, globalEnvNames());
+  ensureEnvFileEntries(store.getPaths().mcpEnv, names, globalEnvNames(true));
 }

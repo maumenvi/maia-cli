@@ -6,5 +6,5 @@ import { globalEnvNames } from './global.env.names.ts';
 
 /** Performs the ensure mcp env file entries operation. */
 export function ensureMcpEnvFileEntries(store: AgentCatalogStore, config: MCPConfig | undefined): void {
-  ensureEnvFileEntries(store.getPaths().mcpEnv, collectReferencedEnvNames(config), globalEnvNames());
+  ensureEnvFileEntries(store.getPaths().mcpEnv, collectReferencedEnvNames(config), globalEnvNames(true));
 }
