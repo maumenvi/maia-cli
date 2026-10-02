@@ -39,7 +39,7 @@ export async function installCatalogResult(
       allowedLlms,
     });
   } else if (result.kind === 'mcp' && result.install.type === 'mcp') {
-    await configureMcpCredentialsFromResult(store, result);
+    await configureMcpCredentialsFromResult(store, result, options.envScope ?? 'project');
     await installMcp(
       store,
       result.name,

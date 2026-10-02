@@ -2,6 +2,7 @@ import type { AgentCatalogStore } from '../../../agent/catalog/store/agent.catal
 import type { SourceLock } from '../../../agent/catalog/types/lock/source.lock.ts';
 import { collectReferencedEnvNames } from './collect.referenced.env.names.ts';
 import { ensureEnvFileEntries } from './ensure.env.file.entries.ts';
+import { globalEnvNames } from './global.env.names.ts';
 
 /** Performs the ensure lock mcp env file entries operation. */
 export function ensureLockMcpEnvFileEntries(
@@ -11,5 +12,5 @@ export function ensureLockMcpEnvFileEntries(
   const names = Object.values(lock.packages)
     .filter((pkg) => pkg.type === 'mcp')
     .flatMap((pkg) => collectReferencedEnvNames(pkg.vscode));
-  ensureEnvFileEntries(store.getPaths().mcpEnv, names);
+  ensureEnvFileEntries(store.getPaths().mcpEnv, names, globalEnvNames());
 }

@@ -4,7 +4,10 @@ import { createInterface } from 'node:readline/promises';
 import type { CatalogSearchResult } from '../../../agent/catalog/providers/contracts/catalog.search.result.ts';
 import type { AgentCatalogStore } from '../../../agent/catalog/store/agent.catalog.store.ts';
 import { isInteractiveTerminal } from '../../shared/terminal/is.interactive.terminal.ts';
+import { globalMcpEnvPath } from '../../../config/core/global.mcp.env.path.ts';
+import { ensureGlobalEnvFile } from './ensure.global.env.file.ts';
 import { ensureMcpEnvFileEntries } from './ensure.mcp.env.file.entries.ts';
+import { globalEnvNames } from './global.env.names.ts';
 import { extractCredentialRequirements } from './extract.credential.requirements.ts';
 import { parseEnvFile } from './parse.env.file.ts';
 import { syncEnvFile } from './sync.env.file.ts';
@@ -13,18 +16,28 @@ import { syncEnvFile } from './sync.env.file.ts';
 export async function configureMcpCredentialsFromResult(
   store: AgentCatalogStore,
   result: CatalogSearchResult,
+  scope: 'project' | 'global' = 'project',
 ): Promise<void> {
-  const requirements = extractCredentialRequirements(result);
+  const alreadyGlobal = globalEnvNames();
+  const requirements = extractCredentialRequirements(result).filter((requirement) => !alreadyGlobal.has(requirement.envName));
   if (requirements.length === 0) {
+    if (scope === 'global') {
+      console.log(`--env-g: ${result.name} requires no credentials; nothing was written.`);
+    }
     ensureMcpEnvFileEntries(store, 'install' in result && result.install.type === 'mcp' ? result.install.vscode : undefined);
     return;
   }
 
-  const envFile = store.getPaths().mcpEnv;
+  const envFile = scope === 'global' ? globalMcpEnvPath() : store.getPaths().mcpEnv;
+  if (scope === 'global') {
+    ensureGlobalEnvFile(envFile);
+  }
   const existing = existsSync(envFile) ? parseEnvFile(readFileSync(envFile, 'utf8')) : new Map<string, string>();
   const toPersist: Record<string, string> = {};
 
-  console.log(`MCP "${result.name}" may require specific credentials. We will configure them in .maia/mcp.env: ${envFile}`);
+  console.log(scope === 'global'
+    ? `MCP "${result.name}" may require specific credentials. We will configure them in the global Maia env: ${envFile}`
+    : `MCP "${result.name}" may require specific credentials. We will configure them in .maia/mcp.env: ${envFile}`);
   const interactive = isInteractiveTerminal();
   // The pasted value stays visible so a mistyped or truncated key can be spotted
   // before it is written. It is the only place a credential is shown, and it
@@ -51,7 +64,7 @@ export async function configureMcpCredentialsFromResult(
       }
 
       if (!input) {
-        console.log(`  Set ${requirement.envName} manually in .maia/mcp.env to enable this MCP.`);
+        console.log(`  Set ${requirement.envName} manually in ${envFile} to enable this MCP.`);
         toPersist[requirement.envName] = '';
         continue;
       }
