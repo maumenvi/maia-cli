@@ -14,7 +14,7 @@ import { installNamedCapability } from './install.named.capability.ts';
 
 /** Builds the install command over the given toolkit side effects. */
 export function createInstallCommand(io: ToolkitIo): CommandHandler {
-  return async (args, { store }) => {
+  return async (args, { store, interaction }) => {
     ensureInitialized(store);
     const { positional, flags } = parseFlags(args);
 
@@ -42,7 +42,7 @@ export function createInstallCommand(io: ToolkitIo): CommandHandler {
       return;
     }
 
-    await installNamedCapability(store, positional, flags);
+    await installNamedCapability(store, positional, flags, interaction);
   };
 }
 

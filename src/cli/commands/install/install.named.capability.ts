@@ -4,11 +4,14 @@ import { searchCatalog } from '../../../agent/catalog/providers/core/search.cata
 import { findRegistryEntry } from '../../../agent/catalog/registry/read/find.registry.entry.ts';
 import type { AgentCatalogStore } from '../../../agent/catalog/store/agent.catalog.store.ts';
 import { MAIA_TOOLKITS_TOOL_NAME } from '../../../agent/mcp/server/collect/maia.toolkits.tool.name.ts';
-import { bestCatalogMatch } from '../../install/external/best.catalog.match.ts';
+import { catalogResultTrust } from '../../install/external/catalog.result.trust.ts';
+import { chooseCatalogResult } from '../../install/external/choose.catalog.result.ts';
 import { installCatalogResult } from '../../install/external/install.catalog.result.ts';
 import { createMcpConfig } from '../../install/mcp/create.mcp.config.ts';
 import { installMcp } from '../../install/mcp/install.mcp.ts';
 import { installSkill } from '../../install/skill/install.skill.ts';
+import type { CliInteraction } from '../../contracts/cli.interaction.ts';
+import { DEFAULT_INTERACTION } from '../../shared/terminal/default.interaction.ts';
 import { withRollback } from '../../shared/rollback/install.rollback.ts';
 import { normalizeKind } from '../../shared/kind.ts';
 import { materializeTool } from '../../shared/workspace/materialize.tool.ts';
@@ -22,6 +25,7 @@ export async function installNamedCapability(
   store: AgentCatalogStore,
   positional: string[],
   flags: Record<string, string>,
+  interaction: CliInteraction = DEFAULT_INTERACTION,
 ): Promise<void> {
 
   const kind = normalizeKind(positional[0] ?? '');
@@ -41,11 +45,15 @@ export async function installNamedCapability(
     const isLocal = Boolean(findRegistryEntry('skill', name));
     if (!explicitSource && !isLocal) {
       const { results } = await searchCatalog(store.loadManifest(), 'skill', name, 10);
-      const match = bestCatalogMatch(results, name);
-      if (!match) {
-        throw new Error(`Skill "${name}" was not found in configured catalogs`);
-      }
-      await installCatalogResult(store, match, { flags });
+      const match = await chooseCatalogResult({
+        query: name,
+        results,
+        interaction,
+        trustOf: (result) => catalogResultTrust(store.loadManifest(), result),
+        notFound: `Skill "${name}" was not found in configured catalogs`,
+      });
+      if (!match) return;
+      await installCatalogResult(store, match, { flags, interaction });
     } else {
       await installSkill(store, {
         name,
@@ -94,11 +102,15 @@ export async function installNamedCapability(
   } else if (kind === 'mcp') {
     if (!explicitSource && !hasManualMcpConfig(flags)) {
       const { results } = await searchCatalog(store.loadManifest(), 'mcp', name, 10);
-      const match = bestCatalogMatch(results, name);
-      if (!match) {
-        throw new Error(`MCP "${name}" was not found in configured catalogs`);
-      }
-      await installCatalogResult(store, match, { flags });
+      const match = await chooseCatalogResult({
+        query: name,
+        results,
+        interaction,
+        trustOf: (result) => catalogResultTrust(store.loadManifest(), result),
+        notFound: `MCP "${name}" was not found in configured catalogs`,
+      });
+      if (!match) return;
+      await installCatalogResult(store, match, { flags, interaction });
     } else {
       await installMcp(
         store,
