@@ -261,7 +261,7 @@ research D10; contracts/cli.install.md).
   - **`--help`** em qualquer subcomando.
 
   Em `SECURITY.md`, a nova política de confiança e consentimento e o arquivo global `0600`. Em `AGENT.md`, remover o follow-up "native skill materialization copies only `SKILL.md`" e adicionar os follow-ups do research D3 (o Cline lê só o arquivo global; o Continue atual prefere `.continue/mcpServers/*.yaml`). Só documentação.
-- [ ] T040 Release 1.7.0: `npm version 1.7.0 --no-git-tag-version`. Entrada `## [1.7.0] - <data>` no `CHANGELOG.md`:
+- [X] T040 Release 1.7.0: `npm version 1.7.0 --no-git-tag-version`. Entrada `## [1.7.0] - <data>` no `CHANGELOG.md`:
   - `### Fixed`: Claude `.mcp.json`; nenhum `cwd` absoluto em nenhum agente; `--help` instalava; skills sem arquivos de apoio; bloco do `CLAUDE.md` afirmava registro inexistente;
   - `### Security`: busca ambígua não instala sem escolha; fonte não confiável sem autorização automática; `mcp-server` fora de projeto falha em vez de criar `.maia/`;
   - `### Added`: `--env-g`, arquivo global, `maia mcp i`, `--as`, aviso de colisão;

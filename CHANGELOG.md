@@ -5,6 +5,49 @@ All notable changes to the Maia CLI are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-10-02
+
+### Fixed
+- Claude Code: the `maia` proxy is registered in `.mcp.json`. Projects set up by older versions
+  had it only in `.claude/claude_desktop_config.json`, which Claude Code never reads, so no MCP
+  reached the agent; the next `maia i`, `maia init claude` or `maia mcp add` moves the entry
+  (other entries and the old file are kept). An invalid `.mcp.json` is never overwritten.
+- No project file written for any agent contains a machine path any more (`cwd` is
+  `${workspaceFolder}` for Copilot/Cursor and omitted elsewhere); `maia mcp-server` finds the
+  project from `CLAUDE_PROJECT_DIR` or by walking up from its working directory.
+- The capability block in `CLAUDE.md`/`AGENTS.md` only claims the proxy is registered when it
+  was, and names the file.
+- Skills are installed as their whole folder (`SKILL.md` plus references, scripts and assets),
+  in `.maia/skills/<name>/` and in the agent's skills directory. `maia i` upgrades skills
+  installed as a single `SKILL.md`.
+- `--help` / `-h` on any command only prints help. `maia skills add --help` used to search
+  for "--help" and install the first result.
+
+### Security
+- A query that is not an exact identifier never installs the first search hit: it asks on a
+  terminal (sources marked `[trusted]`/`[untrusted]`) and fails elsewhere, listing exact
+  identifiers. This also applies to `maia i <skill|mcp> <name>`.
+- Capabilities from untrusted sources are not authorized for agents without consent
+  (confirmation, or `--all-llms` / `--llms`); they used to get `allowedLlms: ["*"]`.
+  Installing no longer overrides the trust a user declared for a source.
+- `maia mcp-server` started outside a project exits with an error instead of creating
+  `.maia/` in that folder.
+
+### Added
+- Global MCP credentials: `--env-g` (also `-env-g`, `--env-global`) on `maia mcp i|add|install`
+  and `maia mcp find` writes to `${XDG_CONFIG_HOME:-~/.config}/maia/mcp.env` (mode `0600`).
+  Precedence: process > project `.maia/mcp.env` > global; an empty project entry never hides
+  the global value.
+- `maia mcp i` as an alias of `maia mcp add`.
+- `maia skills add … --as <name>` and a warning when a skill shares its name with a built-in
+  agent command (e.g. `/security-review` in Claude Code).
+- `.well-known` skills: Agent Skills discovery index (`skill-md` or `archive` tar.gz with digest).
+
+### Changed
+- `maia.lock.json` uses `lockfileVersion: 3` when it has skill folders, with one hash per file;
+  `maia verify` names the missing, changed or unexpected file. Older Maia versions refuse a v3
+  lockfile, so upgrade every machine and CI together.
+
 ## [1.6.2] - 2026-10-01
 
 ### Fixed
