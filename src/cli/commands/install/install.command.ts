@@ -36,6 +36,9 @@ export function createInstallCommand(io: ToolkitIo): CommandHandler {
         );
       }
       const result = await reinstallFromLock(store, lock);
+      // The lock above was hashed before materializing: relock so it records
+      // what is now on disk (a restored or upgraded skill folder included).
+      store.buildLock();
       const toolkits = restoreToolkits(store, lock, 'install', io);
       restoreConfiguredAgents(store);
       console.log(`Bootstrapped maia.lock.json with ${Object.keys(lock.packages).length} locked entries`);
