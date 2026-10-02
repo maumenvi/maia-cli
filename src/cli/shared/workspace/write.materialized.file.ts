@@ -3,12 +3,12 @@ import path from 'node:path';
 
 import { assertNoSymlinkTraversal } from './assert.no.symlink.traversal.ts';
 
-/** Performs the write materialized file operation. */
+/** Writes one file inside the workspace, refusing symlinked paths and anything resolving outside it. */
 export function writeMaterializedFile(
   workspaceRoot: string,
   targetPath: string,
   label: string,
-  content: string,
+  content: string | Buffer,
 ): void {
   assertNoSymlinkTraversal(workspaceRoot, targetPath, label);
   mkdirSync(path.dirname(targetPath), { recursive: true });
@@ -28,7 +28,8 @@ export function writeMaterializedFile(
     0o666,
   );
   try {
-    writeFileSync(fd, content, 'utf8');
+    if (typeof content === 'string') writeFileSync(fd, content, 'utf8');
+    else writeFileSync(fd, content);
   } finally {
     closeSync(fd);
   }
