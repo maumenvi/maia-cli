@@ -45,25 +45,52 @@ pede aprovação dos servidores de `.mcp.json` na primeira sessão. O Maia **nã
 **Rationale**: a aprovação é uma salvaguarda do próprio agente. Pular essa etapa contrariaria o
 princípio II e a política "não altera configs globais de agentes".
 
-## D3 — `cwd` sem caminho absoluto
+## D3 — Nenhum caminho absoluto, em todos os agentes (decisão de 2026-10-02)
 
-**Decision**: `buildEntry` passa a receber o estilo de pasta do agente, por um novo campo
-`projectDir` em `AgentTarget`:
+A pessoa usuária decidiu que o FR-004 vale para **todos** os agentes. Pesquisa sobre como cada
+agente inicia um servidor stdio do arquivo de projeto:
 
-| Agente | Valor em `cwd` | Por quê |
-|--------|----------------|---------|
-| `claude` | omitido | O Claude Code executa servidores de `.mcp.json` a partir da raiz do projeto, como no contorno validado |
-| `copilot` | `${workspaceFolder}` | O VS Code expande essa variável em `.vscode/mcp.json` |
-| `cline`, `codex`, `continue`, `cursor`, `zed` | caminho absoluto (como hoje) | Não confirmamos como cada um resolve a pasta; mudar às cegas pode quebrar o proxy. Fica como follow-up no `AGENT.md` |
+| Agente | Arquivo que o Maia escreve | Como o agente resolve a pasta | `cwd` gravado |
+|--------|----------------------------|-------------------------------|---------------|
+| `claude` | `.mcp.json` | Inicia na pasta de lançamento e define `CLAUDE_PROJECT_DIR` no ambiente do servidor ([docs Claude Code MCP](https://code.claude.com/docs/en/mcp)). `${CLAUDE_PROJECT_DIR}` **não** é expandido no próprio `.mcp.json` | omitido |
+| `copilot` | `.vscode/mcp.json` | O VS Code expande `${workspaceFolder}` | `${workspaceFolder}` |
+| `cursor` | `.cursor/mcp.json` | Expande `${workspaceFolder}` (pasta que contém `.cursor/mcp.json`) em command/args/env/cwd ([docs Cursor MCP](https://cursor.com/docs/mcp)) | `${workspaceFolder}` |
+| `zed` | `.zed/settings.json` | Sempre inicia servidores de contexto na raiz do projeto ([zed#35354](https://github.com/zed-industries/zed/issues/35354)) | omitido |
+| `codex` | `.codex/config.toml` | Config de projeto só vale em projeto confiável; o Codex sobe a partir da pasta atual até a raiz ([docs Codex MCP](https://developers.openai.com/codex/mcp)). O servidor herda a pasta atual da sessão, que fica dentro do projeto | omitido |
+| `continue` | `.continue/config.json` | Sem expansão documentada; o servidor herda a pasta do workspace aberto | omitido |
+| `cline` | `.cline/mcp.json` | O Cline lê **só** o global `cline_mcp_settings.json`; a PR que expandiria `${workspaceFolder}` foi fechada sem merge ([cline#2990](https://github.com/cline/cline/pull/2990)) | omitido |
 
-O perfil `capabilities.json` passa a gravar `mcpServer` **sem** `cwd`, porque ele é só
-informativo e nenhum código o lê.
+**Decision**:
+- `AgentTarget.projectDir: 'omit' | 'workspace-variable'` (**obrigatório** em todo alvo, sem
+  valor padrão absoluto). `mcpEntry` deixa de receber `cwd` absoluto. `collectAgentMcpEntries`
+  e `writeAgentCapabilityProfile` passam `target.projectDir`, e só existe esse mecanismo (achado
+  U1 do analyze).
+- **Descoberta da raiz no `maia mcp-server` (FR-004a)**: função pura
+  `resolveMcpServerProjectRoot({ env, cwd, exists })`, nesta ordem:
+  1. `env.CLAUDE_PROJECT_DIR`, se apontar para um projeto (raiz encontrada subindo dali);
+  2. subir a partir de `cwd` (`findProjectRoot`, que já existe).
 
-**Rationale**: atende ao relato (Claude) e ao VS Code, e não arrisca os outros agentes. A
-mudança de escopo do FR-004 está registrada na spec (Clarifications).
+  Sem resultado, o comando `mcp-server` escreve no stderr `maia: no Maia project found from
+  <cwd> (set the agent's working directory to the project or run "maia init <agent>" there).` e
+  sai com 1, **sem** criar o `AgentCatalogStore` numa pasta qualquer. Hoje o `index.ts` usa
+  `process.cwd()` como fallback, e para o `mcp-server` isso passa a ser erro.
+- O perfil `capabilities.json` grava `mcpServer` sem `cwd`.
+- **Limitações documentadas** (não bloqueiam o FR-004, só a eficácia do registro): o Cline não
+  lê o arquivo de projeto; o Continue atual prefere `.continue/mcpServers/*.yaml` a
+  `.continue/config.json`. Os dois ficam como follow-up no `AGENT.md`.
 
-**Alternatives considered**: passar `--project <caminho>` em `args`. Rejeitado porque continua
-absoluto.
+**Rationale**: o arquivo do projeto fica versionável em todos os agentes. Para os que expandem
+variável de pasta, a pasta é explícita. Para os demais, a pasta de lançamento, ou a variável do
+Claude, junto com a busca para cima já existente, encontram o projeto. E, se nada der certo, o
+erro é explícito em vez de silencioso.
+
+**Alternatives considered**:
+- *MCP roots (`roots/list`)*: obsoleto a partir do protocolo 2026-07-28 ("new implementations
+  should not adopt it"), e o servidor do Maia já fala a era moderna. Descartado.
+- *`args: ["--project", "${CLAUDE_PROJECT_DIR}"]`*: o Claude Code não expande essa variável no
+  `.mcp.json`. Descartado.
+- *Manter `cwd` absoluto nos agentes não confirmados*: era o plano anterior, rejeitado pela
+  pessoa usuária.
 
 ## D4 — Bloco de capacidades fiel ao registro
 
@@ -105,6 +132,13 @@ espalhada é exatamente o que falhou.
   identifier:` seguido da lista `owner/repo@skill` ou nome canônico. Exit 1, nada instalado.
 - `skills add` deixa de percorrer candidatos em sequência. Se o escolhido não estiver
   disponível na fonte, mostra o erro em vez de cair para o próximo.
+
+- **Pontos de injeção para teste (achado U2)**: `CliContext` ganha o campo opcional
+  `interaction?: { isInteractive(): boolean; select(results, opts): Promise<CatalogSearchResult |
+  null>; confirm: ConfirmFn }`. O padrão vem de `src/cli/shared/terminal/default.interaction.ts`
+  (`isInteractiveTerminal`, `selectCatalogResult`, `promptConfirm`). `runSkillsCli` e
+  `mcpCommand` leem `context.interaction ?? defaultInteraction` e repassam a
+  `installCatalogResult`.
 
 **Rationale**: FR-007 a FR-009. Reaproveita o seletor interativo e o padrão de TTY dos
 toolkits (`promptConfirm`).
@@ -156,12 +190,21 @@ mas fica registrado como risco a avaliar no review.
   ganha o campo opcional `files: Record<caminho relativo, "sha256:…">`, e `artifactHash`
   passa a ser `sha256` da lista ordenada `"<caminho>\0<sha256>\n"`. `files` entra no payload
   de integridade **só quando presente**, o que mantém a integridade dos locks antigos.
-- **Versão do lock**: `lockfileVersion: 3` quando algum pacote tem `files`. É um superconjunto
+- **`files` fora da comparação do `maia ci` (achado F1)**: `lockComparableProjection`
+  (`src/agent/catalog/lock/staleness/lock.comparable.projection.ts`) hoje descarta
+  `artifactHash` e `integrity` porque dependem do disco. `files` também depende do disco: num
+  clone limpo, o lock gerado em memória pelo `maia ci` não teria `files` e o salvo teria, então
+  todo `ci` acusaria lock desatualizado. Por isso `files` também é descartado nessa projeção.
+- **Versão do lock**: `lockfileVersion: 3` quando o **manifesto** tem alguma dependência de
+  skill com `path` de pasta (não terminado em `SKILL.md`). A decisão não depende do disco
+  (achado F1): um `maia lock` antes de restaurar as skills não rebaixa a versão. É um superconjunto
   da v2, porque toolkits continuam permitidos. `SUPPORTED_LOCKFILE_VERSIONS = [1, 2, 3]`. Um
   Maia antigo recusa a v3 com a mensagem de compatibilidade que já existe, em vez de verificar
   errado.
 - **Verify**: para `path` que é diretório com `files`, reporta `missing-file`, `changed-file`
-  ou `unexpected-file` com o caminho.
+  ou `unexpected-file` com o caminho. Diretório **sem** `files` no lock é reportado como
+  `missing-artifact-hash`, igual ao caso de arquivo (achado U3). Assim um lock gerado antes da
+  restauração não passa no verify sem checagem.
 - **Agente**: `materializeAgentSkills` espelha a pasta inteira em `<skillsDir>/<nome>/`.
 - **Migração (FR-014)**: no `maia i` sem argumentos, uma dependência de skill remota cujo
   `path` termina em `SKILL.md` é rematerializada como pasta, no mesmo commit da fonte já
@@ -194,6 +237,9 @@ não diria **qual** arquivo divergiu (FR-012).
   chaves ainda ausentes ou vazias. O ambiente do processo continua com prioridade (nada já
   definido e não vazio é sobrescrito). Valor vazio exportado no processo conta como "não
   definido" para efeito de preencher a partir dos arquivos.
+- **Arquivo global ilegível** (achado C1): erro de leitura (ex.: `EACCES`) vira
+  `warning: cannot read <arquivo> (<código>); using project values only.` e o carregamento segue
+  só com o projeto.
 - **Flag**: `--env-g`, com `--env-global` como sinônimo longo, e `-env-g` normalizado para
   `--env-g` antes do parse, porque foi o que a pessoa escreveu. `mcp find` e `mcp add|i`
   passam a usar `parseFlags`, e a query deixa de incluir as flags.
@@ -229,4 +275,5 @@ sem tocar a home real.
 alias) e lock v3. Atualizar o README (en/pt-BR) nas seções de Claude, skills, MCP e
 variáveis, o `help.ts` (via mapa), o CHANGELOG, o `SECURITY.md` (instalação por busca,
 confiança) e o `AGENT.md`. No `AGENT.md`, remover o follow-up "multi-file skills" e adicionar
-o follow-up do `cwd` dos outros agentes.
+os follow-ups do research D3: o Cline lê só o arquivo global, e o Continue atual prefere
+`.continue/mcpServers/*.yaml`.

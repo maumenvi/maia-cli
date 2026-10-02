@@ -31,7 +31,8 @@
 }
 ```
 
-`lockfileVersion: 3` quando algum pacote tem `files`.
+`lockfileVersion: 3` quando o manifesto tem dependência de skill com `path` de pasta (não
+depende do disco). `files` não entra na comparação de lock desatualizado do `maia ci`.
 
 ## `maia verify`
 
@@ -40,6 +41,7 @@ Uma linha por problema, no formato que já existe (`formatLockVerificationProble
 - `File missing for skill:<nome>: <caminho>`
 - `File changed for skill:<nome>: <caminho>`
 - `Unexpected file for skill:<nome>: <caminho>`
+- pasta de skill sem `files` no lock → o problema `missing-artifact-hash` que já existe
 
 ## Migração
 

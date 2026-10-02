@@ -12,7 +12,9 @@ Seis user stories independentes a partir do relato de uso do 1.6.1:
 
 1. **US1 (P1)**: o alvo `claude` passa a escrever **só** em `.mcp.json`, migra a entrada
    `maia` do arquivo legado `.claude/claude_desktop_config.json`, para de gravar `cwd`
-   absoluto (Claude, e `${workspaceFolder}` no Copilot) e o bloco do `CLAUDE.md` reflete o
+   absoluto em **todos** os agentes (`${workspaceFolder}` no Copilot e no Cursor, nenhum `cwd`
+   nos demais, com o `maia mcp-server` descobrindo a raiz por `CLAUDE_PROJECT_DIR` ou subindo
+   a partir da pasta atual) e o bloco do `CLAUDE.md` reflete o
    registro real.
 2. **US2 (P1)**: `--help`/`-h` é interceptado em `src/cli/index.ts` antes de qualquer handler.
 3. **US3 (P1)**: busca ambígua pede escolha ou falha sem TTY. Fonte não confiável só é
@@ -43,10 +45,11 @@ por injeção (`isInteractive`, `ConfirmFn`, `selectFn`) e `MAIA_CONFIG_HOME` te
 **Project Type**: CLI + servidor MCP stdio
 
 **Performance Goals**: instalar uma skill de 50 arquivos com no máximo 1 chamada à API de
-árvore do GitHub + N downloads de conteúdo bruto; ajuda em menos de 100 ms (sem I/O de projeto)
+árvore do GitHub + N downloads de conteúdo bruto; a ajuda não faz nenhum I/O de projeto nem de
+rede (verificado por teste, sem meta de tempo)
 
 **Constraints**: nenhuma rede nos testes; nunca apagar arquivo que o Maia não criou; nada de
-caminho absoluto nos arquivos de projeto do Claude e do Copilot; limite de 200 arquivos e 5 MB
+caminho absoluto nos arquivos de projeto de nenhum agente; limite de 200 arquivos e 5 MB
 por skill
 
 **Scale/Scope**: cerca de 40 arquivos novos ou alterados em `src/`, testes correspondentes,
@@ -71,8 +74,9 @@ README (en/pt-BR), SECURITY, AGENT, CHANGELOG e versão 1.7.0
 
 **Resultado**: passa. Pontos de atenção registrados (não são violações):
 
-- A spec dizia que o FR-004 valia para "todos os agentes"; o plano restringiu a Claude e
-  Copilot (research D3). A mudança está nas Clarifications da spec.
+- FR-004 vale para todos os agentes (decisão de 2026-10-02). Cline e Continue podem não ler o
+  arquivo de projeto que o Maia gera (research D3); isso fica registrado como limitação, não
+  como violação.
 - A integridade normaliza `allowedLlms: []` para `['*']` (research D7). O comportamento não
   muda, mas o hash de integridade não distingue os dois casos. Verificar no code review.
 
@@ -102,7 +106,9 @@ specs/009-agent-integration-fixes/
 ```text
 src/
 ├── cli/
-│   ├── index.ts                                   # intercepta --help/-h (US2)
+│   ├── index.ts                                   # intercepta --help/-h (US2); mcp-server sem projeto → erro (US1)
+│   ├── contracts/cli.context.ts                   # interaction? injetável (US3)
+│   ├── shared/terminal/default.interaction.ts     # NOVO (US3)
 │   ├── help/                                      # NOVO
 │   │   ├── wants.help.ts                          # puro
 │   │   └── command.help.ts                        # mapa comando → linhas; help.ts usa
@@ -132,7 +138,8 @@ src/
 │   ├── agents/
 │   │   ├── contracts/agent.target.ts              # legacyConfigPaths, projectDir, nativeCommands
 │   │   ├── contracts/agent.registration.ts        # NOVO tipo
-│   │   ├── registry/claude.ts, copilot.ts, mcp.entry.ts   # (US1, US6)
+│   │   ├── registry/*.ts (os 7 alvos), mcp.entry.ts       # projectDir obrigatório (US1); nativeCommands (US6)
+│   │   ├── inject/collect.agent.mcp.entries.ts            # passa target.projectDir (US1)
 │   │   └── profiles/write.agent.capability.profile.ts     # sem cwd (US1)
 │   └── catalog/lock/
 │       ├── package.descriptor.ts                  # files + artifactHash de pasta (US4)
@@ -144,6 +151,7 @@ src/
     ├── resolve.global.config.dir.ts               # NOVO, puro (env, platform, home injetados)
     ├── global.mcp.env.path.ts                     # NOVO
     ├── merge.env.layers.ts                        # NOVO, puro
+    ├── resolve.mcp.server.project.root.ts         # NOVO, puro (US1, FR-004a)
     └── load.mcp.env.from.current.project.ts       # camadas processo > projeto > global (US5)
 
 tests/ …                                           # um .test.ts por arquivo puro + cenários de CLI
@@ -174,6 +182,8 @@ comportamento vive hoje. `src/cli/help/` é o único diretório novo.
 | Usuário com `.mcp.json` editado à mão com comentários (JSONC) | `readJson` falha → mensagem "invalid JSON" sem escrever (contrato) |
 | Lista de comandos nativos do Claude desatualizada | Aviso só informativo, não bloqueia |
 | `allowedLlms: []` × integridade normalizada | Registrado para o code review (Constitution Check) |
+| `files` dependente do disco quebrando o `maia ci` (achado F1) | `files` fica fora de `lockComparableProjection`; `lockfileVersion` vem do manifesto; teste de `maia ci` em clone limpo (T031) |
+| Agente que inicia o proxy fora do projeto | `maia mcp-server` falha com mensagem clara em vez de criar `.maia/` na pasta errada (FR-004a) |
 
 ## Complexity Tracking
 

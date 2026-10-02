@@ -15,6 +15,7 @@
 | variável já tem valor no global | não é pedida nem listada |
 | `--env-g` e MCP sem credenciais | `--env-g: <nome> requires no credentials; nothing was written.` |
 | arquivo global existente com permissão mais aberta que `0600` (POSIX) | `warning: <caminho> is readable by other users; run "chmod 600 <caminho>".` |
+| arquivo global ilegível ao subir um MCP | `warning: cannot read <caminho> (<código>); using project values only.`; segue só com o projeto |
 
 ## Arquivo global
 

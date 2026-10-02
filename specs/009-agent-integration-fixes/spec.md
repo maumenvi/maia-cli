@@ -54,10 +54,11 @@ Pontos conferidos no código atual da branch:
   autoriza a capacidade para os agentes configurados (o padrão é "não"). Sem terminal, instala
   sem autorizar nenhum agente e explica como liberar. `--all-llms`/`--llms` na linha de
   comando contam como autorização explícita.
-- Refinamento do plano (research D3): FR-004 vale para os agentes que executam o MCP a partir
-  da raiz do projeto (`claude`) ou aceitam variável de pasta do workspace (`copilot`,
-  `${workspaceFolder}`). Os demais (`cline`, `codex`, `continue`, `cursor`, `zed`) mantêm o
-  `cwd` absoluto até que se confirme como cada um resolve a pasta.
+- Q: O FR-004 (sem caminho absoluto) vale só para Claude e Copilot ou para todos os agentes?
+  → A: **todos os agentes**. O proxy deve funcionar para qualquer agente sem caminho absoluto
+  nos arquivos do projeto. A estratégia por agente está no research D3: variável de pasta do
+  workspace quando o agente a expande, ou nenhum `cwd`, com o `maia mcp-server` descobrindo a
+  raiz do projeto sozinho.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -88,10 +89,15 @@ absoluto, e que uma sessão do Claude Code aberta na raiz lista as ferramentas d
    preservadas e só a entrada `maia` é criada ou atualizada.
 4. **Given** qualquer registro do proxy num arquivo do projeto, **When** o arquivo é
    inspecionado, **Then** ele não contém caminho absoluto da máquina, e o mesmo vale para o
-   perfil de capacidades do agente em `.maia/agents/<id>/`.
+   perfil de capacidades do agente em `.maia/agents/<id>/`. Isso vale para todos os agentes
+   suportados.
 5. **Given** que o registro no arquivo lido pelo agente falhou ou foi pulado (por exemplo,
    projeto "local-only"), **When** o Maia atualiza o bloco gerenciado do `CLAUDE.md`, **Then**
    o bloco não afirma que os MCPs estão registrados e diz o que falta fazer.
+6. **Given** um proxy registrado sem caminho absoluto, **When** o agente inicia o
+   `maia mcp-server` a partir da raiz do projeto, de uma subpasta, ou com a variável de projeto
+   do agente definida, **Then** o proxy encontra o projeto e expõe as capacidades; fora de
+   qualquer projeto, falha com mensagem clara sem criar arquivos.
 
 ---
 
@@ -242,6 +248,12 @@ aviso. Instalar com `--as sentry-security-review`: a pasta, o registro e o bloco
 - **Arquivo legado `.claude/claude_desktop_config.json` com outras entradas além de `maia`**:
   só a entrada `maia` é removida; se o arquivo ficar sem nenhum servidor, ele continua
   existindo (o Maia não apaga arquivos que não criou sozinho nesta execução).
+- **Agente que inicia o proxy fora da pasta do projeto** (por exemplo, a partir da pasta de
+  instalação do editor): o proxy não encontra a raiz e falha com mensagem que diz qual
+  variável ou configuração resolver; não cria `.maia/` na pasta errada.
+- **Agente que não lê o arquivo de projeto gerado pelo Maia** (ex.: Cline lê só o arquivo
+  global `cline_mcp_settings.json`): o arquivo de projeto continua sem caminho absoluto; o
+  registro efetivo nesse agente fica fora do escopo e é documentado.
 - **Pessoa que realmente quer o Claude Desktop**: fora do escopo automático. O Claude Desktop
   lê um arquivo global da máquina, e o Maia não modifica configs globais de agentes
   (comportamento já existente para projetos "local-only").
@@ -270,14 +282,17 @@ aviso. Instalar com `--as sentry-security-review`: a pasta, o registro e o bloco
 
 - **FR-001**: Para o agente `claude`, o Maia MUST registrar o proxy `maia` em `.mcp.json` na
   raiz do projeto, criando o arquivo se ele não existir.
-- **FR-002**: Se `.claude/claude_desktop_config.json` existir com uma entrada `maia` gravada
-  pelo Maia, o Maia MUST migrar a entrada para `.mcp.json`, remover a entrada `maia` do
+- **FR-002**: Se `.claude/claude_desktop_config.json` existir com uma entrada `maia` (a chave
+  do proxy do Maia), o Maia MUST migrar a entrada para `.mcp.json`, remover a entrada `maia` do
   arquivo legado e informar isso na saída.
 - **FR-003**: O Maia MUST preservar as outras entradas existentes em `.mcp.json` e no arquivo
   legado, mudando só a entrada `maia`.
-- **FR-004**: Arquivos de projeto escritos pelo Maia para o agente (config MCP e perfil de
-  capacidades em `.maia/agents/<id>/`) MUST NOT conter caminhos absolutos da máquina, nos
-  agentes listados no refinamento das Clarifications.
+- **FR-004**: Arquivos de projeto escritos pelo Maia para **qualquer** agente (config MCP e
+  perfil de capacidades em `.maia/agents/<id>/`) MUST NOT conter caminhos absolutos da máquina.
+- **FR-004a**: O `maia mcp-server` MUST descobrir a raiz do projeto sem depender de caminho
+  gravado: primeiro pela variável que o agente fornece ao processo (ex.: `CLAUDE_PROJECT_DIR`
+  no Claude Code), depois subindo a partir da pasta em que foi iniciado. Se nenhuma raiz for
+  encontrada, MUST falhar com mensagem clara no stderr, sem criar arquivos fora de um projeto.
 - **FR-005**: O bloco gerenciado nas instruções do agente (`CLAUDE.md` e equivalentes) MUST
   afirmar que os MCPs estão registrados somente quando o arquivo de config lido pelo agente
   foi efetivamente atualizado; caso contrário, MUST dizer que o registro não foi feito e
@@ -378,10 +393,11 @@ aviso. Instalar com `--as sentry-security-review`: a pasta, o registro e o bloco
 - O comando do proxy continua sendo `maia` no `PATH` (instalação global), como hoje.
 - Registrar no Claude Desktop (arquivo global da máquina) fica fora do escopo; o Maia não
   altera configs globais de agentes.
-- O arquivo global de variáveis fica num diretório do Maia na home da pessoa usuária; o local
-  exato (ex.: `~/.maia/mcp.env` ou o diretório de config do sistema) é decisão do plano.
-- A flag pedida como `-env-g` é aceita como `--env-g`. O formato com um hífen só (`-env-g`)
-  também é aceito, porque foi o que a pessoa escreveu.
+- O arquivo global de variáveis fica no diretório de configuração da pessoa usuária
+  (`${XDG_CONFIG_HOME:-~/.config}/maia/mcp.env`; no Windows, `%APPDATA%\maia\mcp.env`). Não
+  pode ser `~/.maia`, porque o Maia trata pastas com `.maia` como raiz de projeto.
+- A flag pedida como `-env-g` é aceita como `--env-g`, com o sinônimo longo `--env-global`. O
+  formato com um hífen só (`-env-g`) também é aceito, porque foi o que a pessoa escreveu.
 - A lista de comandos nativos do Claude Code usada no aviso de colisão é mantida pelo Maia e
   pode ficar desatualizada; o aviso é informativo, não bloqueia.
 - A pasta inteira da skill vem da mesma fonte e do mesmo commit já usados hoje para o

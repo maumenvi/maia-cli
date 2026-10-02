@@ -34,6 +34,16 @@ cat .mcp.json                               # → "maia"
 echo '{' > .mcp.json && maia i; echo $?     # → 1, mensagem "invalid JSON", arquivo intacto
 ```
 
+# Todos os agentes: nenhum caminho absoluto
+A=$(mktemp -d) && cd "$A" && maia init claude copilot cursor zed codex continue cline
+grep -rl "$A" .mcp.json .vscode .cursor .zed .codex .continue .cline .maia/agents 2>/dev/null   # → nada
+grep -h workspaceFolder .vscode/mcp.json .cursor/mcp.json   # → "${workspaceFolder}"
+
+# mcp-server descobre a raiz
+mkdir -p sub && cd sub && printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' | maia mcp-server --agent claude | head -1   # → serverInfo
+cd "$(mktemp -d)" && maia mcp-server --agent claude </dev/null; echo $?   # → 1, "no Maia project found", sem .maia/
+CLAUDE_PROJECT_DIR="$A" sh -c 'printf "%s\n" "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{}}" | maia mcp-server --agent claude | head -1'   # → serverInfo
+
 Manual: abrir o Claude Code na raiz de `$P`, aprovar o servidor de projeto `maia` e conferir que
 as ferramentas aparecem.
 

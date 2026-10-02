@@ -17,13 +17,23 @@ Entrada gravada em `.mcp.json`:
 
 As outras chaves de `mcpServers` e as outras chaves do topo do arquivo são preservadas.
 
-## `copilot`
+## Demais agentes (nenhum caminho absoluto)
 
-Entrada em `.vscode/mcp.json` com `"cwd": "${workspaceFolder}"`.
+| Agente | Arquivo | `cwd` |
+|--------|---------|-------|
+| `copilot` | `.vscode/mcp.json` | `"${workspaceFolder}"` |
+| `cursor` | `.cursor/mcp.json` | `"${workspaceFolder}"` |
+| `zed` | `.zed/settings.json` | ausente |
+| `codex` | `.codex/config.toml` | ausente |
+| `continue` | `.continue/config.json` | ausente |
+| `cline` | `.cline/mcp.json` | ausente |
 
-## Demais agentes
+## `maia mcp-server` sem projeto
 
-Sem mudança: `cwd` absoluto (research D3).
+A raiz vem de `CLAUDE_PROJECT_DIR` (se for um projeto), senão de subir a partir da pasta atual.
+Sem raiz: exit 1 e stderr
+`maia: no Maia project found from <cwd> (set the agent's working directory to the project or run "maia init <agent>" there).`
+Nenhum arquivo é criado.
 
 ## `.maia/agents/<id>/capabilities.json`
 

@@ -36,5 +36,7 @@
 - Marcador sobre `allowedLlms` de fontes não confiáveis resolvido no `/speckit-plan` com a
   opção recomendada B, porque a pergunta ficou sem resposta (ver Clarifications). Pode ser
   revista antes do `/speckit-tasks`.
+- 2026-10-02: FR-004 passa a valer para todos os agentes (decisão da pessoa usuária no
+  `/speckit-analyze`, achado I1); novo FR-004a sobre a descoberta da raiz pelo `maia mcp-server`.
 - Escopo: a spec agrupa 4 correções e 1 funcionalidade nova em 6 user stories independentes.
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`

@@ -8,7 +8,7 @@
 |-------|------|-------|
 | `configPaths(cwd)` | `string[]` | `claude`: **só** `[.mcp.json]` |
 | `legacyConfigPaths?(cwd)` | `string[]` | **novo**; `claude`: `[.claude/claude_desktop_config.json]`. Só para migrar e remover a entrada `maia` |
-| `projectDir?` | `'omit' \| 'workspace-variable' \| 'absolute'` | **novo**; padrão `'absolute'`. `claude: 'omit'`, `copilot: 'workspace-variable'` (`${workspaceFolder}`) |
+| `projectDir` | `'omit' \| 'workspace-variable'` | **novo, obrigatório** (sem caminho absoluto). `copilot` e `cursor`: `'workspace-variable'` (`${workspaceFolder}`); `claude`, `zed`, `codex`, `continue`, `cline`: `'omit'` (research D3) |
 | `nativeCommands?` | `readonly string[]` | **novo**; `claude`: lista do research D10 |
 
 ## Entrada do proxy `maia`
@@ -17,8 +17,17 @@
 { "command": "maia", "args": ["mcp-server", "--agent", "<id>"], "cwd": "<conforme projectDir>" }
 ```
 
-`cwd` fica ausente quando o valor é `'omit'`. O perfil `.maia/agents/<id>/capabilities.json`
-grava `mcpServer` sempre sem `cwd`.
+`cwd` fica ausente com `'omit'` e é `${workspaceFolder}` com `'workspace-variable'`. Nenhum
+agente recebe caminho absoluto. O perfil `.maia/agents/<id>/capabilities.json` grava
+`mcpServer` sempre sem `cwd`.
+
+## Raiz do projeto no `maia mcp-server` (novo)
+
+`resolveMcpServerProjectRoot({ env, cwd, exists }) → string | undefined`:
+1. `env.CLAUDE_PROJECT_DIR` → `findProjectRoot(<valor>)`;
+2. `findProjectRoot(cwd)`.
+
+`undefined` → erro no stderr e exit 1, sem criar arquivos.
 
 ## Resultado do registro (novo)
 
@@ -45,7 +54,11 @@ o consome.
 | `sourceName?` | **novo**, como no manifesto |
 | integridade | `files` e `sourceName` entram no payload **só quando presentes** |
 
-`lockfileVersion`: `3` se algum pacote tem `files`; senão `2` se há toolkits; senão `1`.
+`lockfileVersion`: `3` se o **manifesto** tem dependência de skill com `path` de pasta (não
+terminado em `SKILL.md`); senão `2` se há toolkits; senão `1`. A decisão não depende do disco.
+
+**Comparação de staleness** (`lockComparableProjection`): descarta `artifactHash`, `integrity`
+**e `files`**, os três dependentes do disco.
 Versões aceitas: `[1, 2, 3]`.
 
 ## Problemas de verificação (novos tipos)
@@ -55,6 +68,7 @@ Versões aceitas: `[1, 2, 3]`.
 | `missing-file` | arquivo listado em `files` não existe |
 | `changed-file` | hash do arquivo difere |
 | `unexpected-file` | arquivo na pasta da skill que não está em `files` |
+| `missing-artifact-hash` (existente) | também para pasta de skill sem `files` no lock |
 
 ## SkillFiles (transitório, não persistido)
 
@@ -67,6 +81,7 @@ Versões aceitas: `[1, 2, 3]`.
 |----------|-------|
 | Caminho | `$MAIA_CONFIG_HOME/mcp.env`; senão `${XDG_CONFIG_HOME:-~/.config}/maia/mcp.env`; no Windows, `%APPDATA%\maia\mcp.env` |
 | Permissões | diretório `0700`, arquivo `0600` (só na criação) |
+| Ilegível | aviso `warning: cannot read <arquivo> (<código>); using project values only.` e segue |
 | Formato | o mesmo `KEY=value` de `.maia/mcp.env` |
 
 ### Precedência ao subir um MCP
