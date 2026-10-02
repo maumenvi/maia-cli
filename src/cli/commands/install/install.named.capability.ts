@@ -45,7 +45,7 @@ export async function installNamedCapability(
       if (!match) {
         throw new Error(`Skill "${name}" was not found in configured catalogs`);
       }
-      await installCatalogResult(store, match, allowedLlms);
+      await installCatalogResult(store, match, { flags });
     } else {
       await installSkill(store, {
         name,
@@ -98,7 +98,7 @@ export async function installNamedCapability(
       if (!match) {
         throw new Error(`MCP "${name}" was not found in configured catalogs`);
       }
-      await installCatalogResult(store, match, allowedLlms);
+      await installCatalogResult(store, match, { flags });
     } else {
       await installMcp(
         store,
