@@ -3,6 +3,7 @@ import { createInterface } from 'node:readline/promises';
 
 import type { CatalogSearchResult } from '../../../agent/catalog/providers/contracts/catalog.search.result.ts';
 import type { AgentCatalogStore } from '../../../agent/catalog/store/agent.catalog.store.ts';
+import { isInteractiveTerminal } from '../../shared/terminal/is.interactive.terminal.ts';
 import { ensureMcpEnvFileEntries } from './ensure.mcp.env.file.entries.ts';
 import { extractCredentialRequirements } from './extract.credential.requirements.ts';
 import { parseEnvFile } from './parse.env.file.ts';
@@ -24,7 +25,7 @@ export async function configureMcpCredentialsFromResult(
   const toPersist: Record<string, string> = {};
 
   console.log(`MCP "${result.name}" may require specific credentials. We will configure them in .maia/mcp.env: ${envFile}`);
-  const interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY);
+  const interactive = isInteractiveTerminal();
   // The pasted value stays visible so a mistyped or truncated key can be spotted
   // before it is written. It is the only place a credential is shown, and it
   // never reaches a log or a versioned file.

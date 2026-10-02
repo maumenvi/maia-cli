@@ -52,7 +52,7 @@ run check:naming` verdes.
 
 ## Phase 1: Setup
 
-- [ ] T001 Linha de base: na branch `009-agent-integration-fixes`, rodar os gates acima e registrar que estão verdes (358 testes). Rodar `rtk grep -rn "SKILL.md'" tests` e `rtk grep -rn "runSkillsCli(\['add'\|mcpCommand(\['add'" tests` e anotar, na seção "Notas de execução" no fim deste arquivo, os testes que dependem de (a) `path` de skill terminando em `SKILL.md` no lock/manifesto e (b) `add <termo não exato>` sem TTY. Eles serão ajustados em T011, T012 e T031. Sem commit de código.
+- [X] T001 Linha de base: na branch `009-agent-integration-fixes`, rodar os gates acima e registrar que estão verdes (358 testes). Rodar `rtk grep -rn "SKILL.md'" tests` e `rtk grep -rn "runSkillsCli(\['add'\|mcpCommand(\['add'" tests` e anotar, na seção "Notas de execução" no fim deste arquivo, os testes que dependem de (a) `path` de skill terminando em `SKILL.md` no lock/manifesto e (b) `add <termo não exato>` sem TTY. Eles serão ajustados em T011, T012 e T031. Sem commit de código.
 
 ---
 
@@ -60,7 +60,7 @@ run check:naming` verdes.
 
 **⚠️** US3 e US5 dependem desta fase.
 
-- [ ] T002 Interação injetável (research D6, "Pontos de injeção para teste"):
+- [X] T002 Interação injetável (research D6, "Pontos de injeção para teste"):
   - criar `src/cli/shared/terminal/is.interactive.terminal.ts` com `isInteractiveTerminal(stdin = process.stdin, stdout = process.stdout): boolean` → `Boolean(stdin.isTTY && stdout.isTTY)` (JSDoc: "única definição de 'interativo' do CLI");
   - criar `src/cli/contracts/cli.interaction.ts` com `interface CliInteraction { isInteractive(): boolean; select(results: CatalogSearchResult[], options?: { trustOf?: (r: CatalogSearchResult) => boolean }): Promise<CatalogSearchResult | null>; confirm: ConfirmFn }`;
   - criar `src/cli/shared/terminal/default.interaction.ts` com `DEFAULT_INTERACTION: CliInteraction` (`isInteractiveTerminal`, `selectCatalogResult`, `promptConfirm` de `src/cli/commands/toolkit/prompt.confirm.ts`);
@@ -334,4 +334,17 @@ Total: 41 tarefas (39 commits; a T001 não gera commit, e T013 e T014 compartilh
 
 ## Notas de execução
 
-*(preenchido na T001)*
+**T001 (2026-10-02)**: linha de base verde (358 testes; typecheck, architecture e naming OK).
+
+- (a) Dependem de `path` de skill `…/SKILL.md` no manifesto/lock: `tests/cli/remote.skill.test.ts:51`,
+  `tests/cli/install.test.ts:87`, `tests/cli/skills.test.ts:67`, `tests/cli/agent.test.ts:208-233`
+  (manifesto manual com `path: skills/<n>/SKILL.md`, que continua válido como formato antigo).
+  Asserções de existência de `skills/<n>/SKILL.md` continuam válidas com a pasta.
+- (b) `add <termo não exato>` sem TTY: `tests/cli/skills.test.ts:155` e `:199` (`add sqlite`).
+  `:118` (`add find-skills`) é exato se o catálogo falso devolver um único `find-skills`.
+- **Achado extra**: `maia i skill <nome>` e `maia i mcp <nome>`
+  (`src/cli/commands/install/install.named.capability.ts:44,97`) também usam `bestCatalogMatch`
+  e instalam o primeiro resultado. Para cumprir o FR-007/SC-004, a escolha exato/ambíguo vira
+  uma função compartilhada (`src/cli/install/external/choose.catalog.result.ts`), usada por
+  `skills add`, `mcp add` e `maia i <skill|mcp> <nome>` (T011/T012). `installCatalogResult`
+  recebe `flags`, e não mais o `allowedLlms` já resolvido.

@@ -1,12 +1,16 @@
 import { createInterface } from 'node:readline/promises';
 
 import type { CatalogSearchResult } from '../../../agent/catalog/providers/contracts/catalog.search.result.ts';
+import type { CatalogSelectOptions } from '../../contracts/catalog.select.options.ts';
 import { extractCredentialEnvHints } from './extract.credential.env.hints.ts';
 import { formatCredentialSources } from './format.credential.sources.ts';
 import { formatInstalls } from './format.installs.ts';
 
 /** Performs the select catalog result operation. */
-export async function selectCatalogResult(results: CatalogSearchResult[]): Promise<CatalogSearchResult | null> {
+export async function selectCatalogResult(
+  results: CatalogSearchResult[],
+  _options: CatalogSelectOptions = {},
+): Promise<CatalogSearchResult | null> {
   if (results.length === 0) {
     return null;
   }
