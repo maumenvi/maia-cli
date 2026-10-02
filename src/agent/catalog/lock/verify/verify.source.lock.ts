@@ -1,7 +1,10 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 
 import type { SourceLock } from '../../types/lock/source.lock.ts';
+import { hashSkillFiles } from '../hash.skill.files.ts';
+import { readSkillDirectory } from '../read.skill.directory.ts';
 import type { VerifySourceLockOptions } from '../verify.source.lock.options.ts';
+import { compareSkillFiles } from './compare.skill.files.ts';
 import { fingerprintFile } from './fingerprint.file.ts';
 import type { LockVerificationProblem } from './lock.verification.problem.ts';
 import type { LockVerificationResult } from './lock.verification.result.ts';
@@ -41,6 +44,18 @@ export function verifySourceLock(
     }
 
     const fileInfo = statSync(resolvedPath);
+    if (pkg.type === 'skill' && fileInfo.isDirectory()) {
+      if (!pkg.files) {
+        problems.push({
+          packageId: id,
+          kind: 'missing-artifact-hash',
+          message: `No recorded artifact hash for ${id} at ${pkg.path}; the lockfile is incomplete. Run "maia lock" to regenerate it.`,
+        });
+      } else {
+        problems.push(...compareSkillFiles(id, pkg.files, hashSkillFiles(readSkillDirectory(resolvedPath)).files));
+      }
+      continue;
+    }
     if (!fileInfo.isFile()) {
       continue;
     }
