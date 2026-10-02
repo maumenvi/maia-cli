@@ -9,7 +9,7 @@ export const mcpServerCommand: CommandHandler = async (args, { store }) => {
 
   const server = createMcpStdioServer(store, {
     name: flags.name ?? 'maia-mcp-server',
-    version: flags.version ?? '1.0.0',
+    version: flags.version,
     dynamicDiscovery: dynamic,
     agentId: flags.agent,
   });

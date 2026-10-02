@@ -1,3 +1,7 @@
+import { hasStaleLocalSourceRef } from '../../../agent/catalog/manifest/migrate/has.stale.local.source.ref.ts';
+import { migrateStaleLocalSourceRef } from '../../../agent/catalog/manifest/migrate/migrate.stale.local.source.ref.ts';
+import { STALE_LOCAL_SOURCE_REF } from '../../../agent/catalog/manifest/migrate/stale.local.source.ref.ts';
+import { readMaiaPackageVersion } from '../../../shared/package/read.maia.package.version.ts';
 import type { CommandHandler } from '../../contracts/command.handler.ts';
 import { parseFlags } from '../../shared/flags/parse.flags.ts';
 import { reinstallFromLock } from '../../shared/workspace/reinstall.from.lock.ts';
@@ -15,7 +19,20 @@ export function createInstallCommand(io: ToolkitIo): CommandHandler {
     const { positional, flags } = parseFlags(args);
 
     if (positional.length === 0) {
+      // Projects created while Maia shipped a hand-written 1.5.2 still pin that
+      // unpublished version; a bare install rewrites it before relocking (feature 007).
+      const manifest = store.loadManifest();
+      const migrateLocalRef = hasStaleLocalSourceRef(manifest);
+      if (migrateLocalRef) {
+        store.saveManifest(migrateStaleLocalSourceRef(manifest, readMaiaPackageVersion()));
+      }
       const lock = store.buildLock();
+      if (migrateLocalRef) {
+        console.log(
+          `Updated maia.json source "local" ref from ${STALE_LOCAL_SOURCE_REF} (never published) `
+          + `to ${readMaiaPackageVersion()}; maia.lock.json regenerated.`,
+        );
+      }
       const result = await reinstallFromLock(store, lock);
       const toolkits = restoreToolkits(store, lock, 'install', io);
       restoreConfiguredAgents(store);

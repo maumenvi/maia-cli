@@ -9,13 +9,66 @@ import { AgentCatalogStore } from '../../src/agent/catalog/store/agent.catalog.s
 import type { JsonRpcRequest } from '../../src/agent/mcp/runtime/protocol/json-rpc/json.rpc.request.ts';
 import type { JsonRpcResponse } from '../../src/agent/mcp/runtime/protocol/json-rpc/json.rpc.response.ts';
 import { McpStdioServer } from '../../src/agent/mcp/server/stdio.ts';
+import { ROOT_PACKAGE_VERSION } from '../support/root.package.version.ts';
 
 async function invoke(server: McpStdioServer, request: JsonRpcRequest): Promise<JsonRpcResponse | null> {
   const handle = Reflect.get(server as object, 'handle') as (req: JsonRpcRequest) => Promise<JsonRpcResponse | null>;
   return handle.call(server, request);
 }
 
+const MODERN_META = {
+  'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+  'io.modelcontextprotocol/clientInfo': { name: 'test-client', version: '1.0.0' },
+  'io.modelcontextprotocol/clientCapabilities': {},
+};
+
+/** Returns the serverInfo version reported by initialize and by modern discovery. */
+async function reportedVersions(server: McpStdioServer): Promise<{ initialize?: string; discover?: string }> {
+  const initialize = await invoke(server, { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} });
+  const discover = await invoke(server, { jsonrpc: '2.0', id: 2, method: 'server/discover', params: { _meta: MODERN_META } });
+  const initializeResult = initialize && 'result' in initialize
+    ? initialize.result as { serverInfo?: { version?: string } }
+    : {};
+  const discoverResult = discover && 'result' in discover
+    ? discover.result as { _meta?: Record<string, { version?: string }> }
+    : {};
+  return {
+    initialize: initializeResult.serverInfo?.version,
+    discover: discoverResult._meta?.['io.modelcontextprotocol/serverInfo']?.version,
+  };
+}
+
 describe('McpStdioServer', () => {
+  it('reports the real Maia version when no version is configured', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-mcp-server-version-'));
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveManifest(store.loadManifest());
+
+      assert.deepEqual(await reportedVersions(new McpStdioServer(store)), {
+        initialize: ROOT_PACKAGE_VERSION,
+        discover: ROOT_PACKAGE_VERSION,
+      });
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps an explicit version override', async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-mcp-server-version-override-'));
+    try {
+      const store = new AgentCatalogStore({ cwd: tempDir });
+      store.saveManifest(store.loadManifest());
+
+      assert.deepEqual(await reportedVersions(new McpStdioServer(store, { version: '9.9.9' })), {
+        initialize: '9.9.9',
+        discover: '9.9.9',
+      });
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it('initializes, lists proxied MCP tools, and calls them', async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), 'maia-mcp-server-'));
     const fixturePath = fileURLToPath(new URL('../fixtures/mcp/mock-stdio-server.mjs', import.meta.url));

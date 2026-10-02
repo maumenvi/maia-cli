@@ -1,6 +1,6 @@
 {
   "name": "@maumenvi/maia-cli",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "description": "CLI for cataloging and installing skills, MCPs, and tools for AI agents",
   "license": "MIT",
   "type": "module",
@@ -39,6 +39,7 @@
     "maia": "node src/cli/index.ts",
     "build:publish": "node scripts/build-publish.mjs",
     "prepack": "npm run build:publish",
+    "postpublish": "node scripts/tag-release.mjs",
     "test": "node scripts/run-tests.mjs",
     "test:coverage": "node scripts/run-tests.mjs --coverage",
     "check:architecture": "node scripts/check-source-architecture.mjs",

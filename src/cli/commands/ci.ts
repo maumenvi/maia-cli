@@ -1,4 +1,6 @@
 import { buildLockFromManifest } from '../../agent/catalog/lock/build.ts';
+import { hasStaleLocalSourceRef } from '../../agent/catalog/manifest/migrate/has.stale.local.source.ref.ts';
+import { STALE_LOCAL_SOURCE_REF } from '../../agent/catalog/manifest/migrate/stale.local.source.ref.ts';
 import { isLockStale } from '../../agent/catalog/lock/staleness/is.lock.stale.ts';
 import type { CommandHandler } from '../contracts/command.handler.ts';
 import { withRollback } from '../shared/rollback/install.rollback.ts';
@@ -24,6 +26,15 @@ export function createCiCommand(io: ToolkitIo): CommandHandler {
     }
 
     assertLockfileVersionCompatible(lock.lockfileVersion);
+
+    // CI never rewrites files: a project still pinning the unpublished 1.5.2
+    // is only told how to fix it locally (feature 007, FR-010a).
+    if (hasStaleLocalSourceRef(store.loadManifest())) {
+      console.warn(
+        `warning: maia.json source "local" pins ref ${STALE_LOCAL_SOURCE_REF}, a Maia version that was never published. `
+        + 'Run "maia i" and commit maia.json and maia.lock.json to fix it.',
+      );
+    }
 
     // The on-disk lockfile is CI's input, but it must still agree with the
     // manifest — a stale lock is a developer error that has to be reported,

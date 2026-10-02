@@ -5,7 +5,25 @@ All notable changes to the Maia CLI are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.6.2] - 2026-10-01
+
+### Fixed
+- `maia.json`/`maia.lock.json` no longer pin the `local` source to `1.5.2`, a hand-written
+  version that was never published to npm (`npm view @maumenvi/maia-cli@1.5.2` returned 404).
+  New manifests record the running Maia version instead.
+- Existing projects that still pin `1.5.2` are fixed automatically by the next bare `maia i`,
+  which rewrites the `local` source ref and regenerates `maia.lock.json`; commit both files.
+  `maia ci` never rewrites files: it only prints a warning and keeps passing. Any other `ref`
+  is left untouched, and `maia i <name>` does not migrate.
+- The Maia MCP server now reports the real version in `serverInfo` (it reported `1.0.0`;
+  `--version` still overrides it), and Maia as an MCP client sends the real version in
+  `clientInfo` (it sent `1.5.2`).
+
+### Added
+- `package.json` is the single source of Maia's version; a test fails if any exposed version
+  drifts from it, and `build:publish` checks the compiled `dist/` before packing.
+- `postpublish` creates and pushes the `vX.Y.Z` git tag of each published release; it is
+  skipped on `npm publish --dry-run` and `npm stage publish`.
 
 ## [1.6.1] - 2026-09-24
 
@@ -27,21 +45,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.6.0] - 2026-09-23
 
 ### Added
-- Agent configuration now registers every installed skill and MCP server **natively** in each
-  configured agent, not only the aggregating `maia` proxy:
-  - installed MCP servers are injected individually into the agent's native MCP config
-    (`.mcp.json`, `.vscode/mcp.json`, `.cursor/mcp.json`, `.codex/config.toml`, …) next to `maia`;
-  - authorized skills are copied into the agent's native skills directory (`.claude/skills/<name>/SKILL.md`);
-  - an idempotent `maia:capabilities` block is upserted into the agent's instruction file
-    (`CLAUDE.md`, `.github/copilot-instructions.md`, `AGENTS.md`, `.cursor/rules/maia.mdc`, `.clinerules/maia.md`).
-- `AgentTarget` gained `configFormat`, `skillsDir`, and `instructionsFile` descriptors so agent
-  wiring is data-driven instead of branching on the agent id.
+- **MCP server and runtime security** (feature 005):
+  - the stdio MCP server rejects an `initialize` that declares an unsupported protocol
+    revision with `-32602` and `data.supported`, instead of silently answering with a
+    different revision;
+  - credential values injected into an MCP process are redacted from its stderr as
+    `[REDACTED:<NAME>]` before the output reaches the terminal;
+  - a declared environment variable that does not resolve fails the start **before** the
+    process spawns, naming every missing variable at once;
+  - closing stdin now awaits session shutdown with a deadline, so child MCP processes
+    cannot outlive the parent as orphans.
+- **Guardrails for destructive actions** (`maia guardrail check <path...>`): a deny list
+  evaluated at four enforcement points — the command, a pre-commit hook, the CI gate, and
+  `maia remove` before it deletes a materialized artifact. Configured in
+  `.maia/guardrails.json`; a malformed config blocks every destructive action
+  (fail-closed), and there is **no runtime override**.
+- `npm run guardrails:install` wires the versioned pre-commit hook via `core.hooksPath`.
+- CI gates for guardrails and for file naming.
 
 ### Changed
-- The `claude` target now prefers `.mcp.json` (Claude Code project scope), falling back to the
-  legacy `.claude/claude_desktop_config.json`, and is labelled `Claude`.
-- Per-agent registration respects the existing `allowedLlms` / `llmAccessDefault` policy — only
-  capabilities authorized for that agent are delivered.
+- **Agent configuration registers only the `maia` proxy** (FR-006), not each installed MCP.
+  This reverses the unreleased behavior below. A direct entry is spawned by the agent
+  itself, which never loads `.maia/mcp.env` and therefore cannot resolve the `${env:...}`
+  placeholders credentials rely on, nor inherit the shell where the runtime is resolvable —
+  producing spawn failures and a credential the server never receives. Registering both
+  also exposed every tool twice. Authorized skills are still copied into the agent's native
+  skills directory, and the `maia:capabilities` instruction block is still upserted.
+- Proxied tool names are sanitized to the identifier charset agents accept:
+  `io.github.upstash/context7__query-docs` becomes `context7__query-docs`. The registry id
+  carries dots and slashes, which agents reject during validation — surfacing to the user
+  as the agent distrusting the tool rather than as a malformed name.
+- Credentials are collected only from the transport actually installed. A server publishing
+  both an npm package and a hosted remote no longer creates an env variable nothing reads.
+- The credential prompt shows the pasted value, so a truncated or mistyped key can be
+  spotted before it is written.
+- `.maia/mcp.env` and the catalog resolve from the project root upwards, so running from a
+  subdirectory addresses the same project instead of finding nothing.
+- Installing via `maia mcp add/find` and `maia skills add` now propagates the capability to
+  every configured agent, instead of only writing the manifest and lockfile.
+- An MCP that fails to start is reported on stderr and skipped, instead of disappearing
+  silently and looking identical to a server exposing no tools.
+- All source file names migrated to the dot convention of Constitution Principle IX
+  (436 files); directories keep their existing spelling.
 
 ## [1.5.3]
 

@@ -1,7 +1,8 @@
-/** Version and package identity embedded into Maia's runtime protocol metadata. */
+/**
+ * Fixed identity of the Maia package. The version is not kept here: it is read
+ * from package.json by `readMaiaPackageVersion` so it can never drift.
+ */
 export const MAIA_PACKAGE_METADATA = {
   name: '@maumenvi/maia-cli',
-  version: '1.5.2',
   source: 'npm:@maumenvi/maia-cli',
 } as const;
-

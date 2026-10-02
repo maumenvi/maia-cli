@@ -91,8 +91,11 @@ agents and editors can call it automatically without repeated prompting.
 | Continue | `.continue/config.json` | — | `AGENTS.md` |
 | OpenAI Codex | `.codex/config.toml` | — | `AGENTS.md` |
 
-Each installed MCP server is injected individually into the agent's native MCP config next
-to the `maia` proxy (stdio, npx, http, sse, ws). A managed capability block delimited by
+The agent's native MCP config receives the `maia` proxy only; installed MCP servers are
+reached through it rather than being written in individually. A direct entry would be
+spawned by the agent itself, which does not load `.maia/mcp.env` and so cannot resolve the
+`${env:...}` placeholders credentials rely on, nor inherit the shell where the server's
+runtime is resolvable. A managed capability block delimited by
 `<!-- maia:capabilities:start -->` / `<!-- maia:capabilities:end -->` is upserted into the
 instruction file; content outside the markers is never touched, and re-runs are idempotent.
 
@@ -166,6 +169,30 @@ tests/
 6. Preserve current command behavior unless the task explicitly changes UX.
 7. Avoid adding dependencies unless they are clearly necessary.
 8. Validate with `typecheck`, `check:architecture`, and the test/coverage scripts before concluding work.
+
+## Release
+
+`package.json` is the only place that holds Maia's version. The CLI, the default `local`
+source ref in `maia.json`/`maia.lock.json` and the MCP client/server identities all read it
+through `src/shared/package/read.maia.package.version.ts`; never write a version literal
+anywhere else (`tests/shared/maia.version.sync.test.ts` fails if one drifts).
+
+1. Bump `version` in `package.json` only.
+2. Add the release entry to `CHANGELOG.md`.
+3. Commit with a clean working tree.
+4. Run `npm publish`. It runs `prepack` → `build:publish`, which ends with
+   `scripts/check-dist-version.mjs` (aborts if the built `dist/` reports another version),
+   and then `postpublish` → `scripts/tag-release.mjs`, which creates the annotated tag
+   `vX.Y.Z` on `HEAD` and pushes it to `origin`.
+5. If `postpublish` fails after the package was published (for example, no network), run
+   `node scripts/tag-release.mjs` again; it is idempotent and never moves or force-pushes a tag.
+6. `npm publish --dry-run` and `npm stage publish` also run `postpublish`, but the version is
+   not live yet, so the script prints `Skipping release tag …` and creates nothing. After
+   `npm stage approve <id>` (which runs no scripts), create the tag with
+   `node scripts/tag-release.mjs`.
+
+Tags for releases published before this process can be created once, by hand, with the
+commands in `specs/007-fix-package-version/quickstart.md` (section "Tags retroativas").
 
 ## Notes for future changes
 

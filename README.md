@@ -191,7 +191,7 @@ Typical result:
 
 - your project gets the Maia capability folders;
 - each selected agent receives an identified MCP entrypoint and an authorization profile under `.maia/agents/<id>/`;
-- each selected agent is also wired natively: installed MCP servers are registered individually in the agent's own MCP config next to the `maia` proxy, authorized skills are copied into the agent's native skills directory when supported (for example `.claude/skills/`), and otherwise remain available through the Maia MCP server; a managed `maia:capabilities` block is upserted into the agent's instruction file (`CLAUDE.md`, `.github/copilot-instructions.md`, `AGENTS.md`, …);
+- each selected agent is also wired natively: the `maia` proxy is registered in the agent's own MCP config and installed MCPs are reached through it, authorized skills are copied into the agent's native skills directory when supported (for example `.claude/skills/`), and a managed `maia:capabilities` block is upserted into the agent's instruction file (`CLAUDE.md`, `.github/copilot-instructions.md`, `AGENTS.md`, …);
 - installed skills, MCPs, and tools become easier to version, share, and reproduce.
 
 
@@ -239,7 +239,7 @@ Opening an MCP transport reads only `.maia/mcp.env`; it does not load or modify 
 
 Each native agent bootstrap runs `maia mcp-server --agent <id>`. This identity lets the aggregate MCP expose only the skills, tools, and proxied MCPs authorized for that selected agent. Native bootstrap files such as `.vscode/mcp.json` or `.codex/config.toml` remain in the client-required locations; all Maia-owned state stays under `.maia/`.
 
-In addition to the `maia` proxy, `configureAgents` writes the authorized capabilities directly into each agent's canonical locations so the agent recognizes them without extra prompting:
+`configureAgents` writes the `maia` proxy plus the authorized capabilities into each agent's canonical locations, so the agent recognizes them without extra prompting:
 
 | Agent | MCP config | Skills | Instructions |
 | --- | --- | --- | --- |
@@ -378,8 +378,31 @@ maia toolkit rm|remove <name> [-y|--yes]
 
 ```bash
 maia ls [skill|mcp|tool]
-maia list-tools [query]
+maia list-skills [query] [--json]
+maia list-tools [query] [--json]
+maia list-capabilities [query] [--json]
+```
+
+`maia capabilities` is an alias for `list-capabilities`, and `maia discover` for
+`list-tools`. Each lists configured registries, installed entries, and local
+registry inventory; passing a query also searches the remote catalogs.
+
+### MCP server
+
+```bash
+maia mcp-server [--name <name>] [--version <ver>] [--dynamic true] [--agent <id>]
+```
+
+The aggregating stdio server agents connect to. `--agent` scopes the exposed
+capabilities to that agent's authorizations; `--dynamic` re-collects tools on
+every `tools/list` instead of caching them at startup. Agent configs are wired
+to run this automatically — you rarely invoke it by hand.
+
+### Other commands
+
+```bash
 maia rm <skill|mcp|tool> <name>
+maia guardrail check <path...>
 maia version
 ```
 

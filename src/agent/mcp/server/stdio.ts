@@ -1,5 +1,6 @@
 import { createInterface } from 'node:readline';
 
+import { readMaiaPackageVersion } from '../../../shared/package/read.maia.package.version.ts';
 import type { AgentCatalogStore } from '../../catalog/store/agent.catalog.store.ts';
 import { AgentMcpManager } from '../manager/manager/agent.mcp.manager.ts';
 import { createModernResultMeta } from '../runtime/protocol/json-rpc/create.modern.result.meta.ts';
@@ -33,7 +34,7 @@ export class McpStdioServer {
     this.catalog = catalog;
     this.mcpManager = new AgentMcpManager(catalog);
     this.serverName = options.name ?? 'maia-mcp-server';
-    this.serverVersion = options.version ?? '1.0.0';
+    this.serverVersion = options.version ?? readMaiaPackageVersion();
     this.dynamicDiscovery = options.dynamicDiscovery ?? false;
     this.agentId = options.agentId;
   }

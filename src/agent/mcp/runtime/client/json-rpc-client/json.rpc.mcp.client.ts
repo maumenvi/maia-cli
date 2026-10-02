@@ -1,4 +1,4 @@
-import { MAIA_PACKAGE_METADATA } from '../../../../../shared/package.metadata.ts';
+import { readMaiaPackageVersion } from '../../../../../shared/package/read.maia.package.version.ts';
 import type { McpClient } from '../../contracts/mcp.client.ts';
 import type { McpRequestOptions } from '../../contracts/mcp.request.options.ts';
 import type { McpTransport } from '../../contracts/mcp.transport.ts';
@@ -149,7 +149,7 @@ export class JsonRpcMcpClient implements McpClient {
       capabilities: {},
       clientInfo: {
         name: 'maia',
-        version: MAIA_PACKAGE_METADATA.version,
+        version: readMaiaPackageVersion(),
       },
     }, {
       ...options,

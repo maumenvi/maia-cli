@@ -1,6 +1,7 @@
 import path from 'node:path';
 
 import { MAIA_PACKAGE_METADATA } from '../../../shared/package.metadata.ts';
+import { readMaiaPackageVersion } from '../../../shared/package/read.maia.package.version.ts';
 import type { SourcesManifest } from '../types/manifest/sources.manifest.ts';
 
 /** Performs the create default manifest operation. */
@@ -27,7 +28,7 @@ export const createDefaultManifest = (): SourcesManifest => ({
     local: {
       type: 'registry',
       url: MAIA_PACKAGE_METADATA.source,
-      ref: MAIA_PACKAGE_METADATA.version,
+      ref: readMaiaPackageVersion(),
       trusted: true,
     },
   },

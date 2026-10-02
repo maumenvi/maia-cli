@@ -1,4 +1,4 @@
-import { MAIA_PACKAGE_METADATA } from '../../../../../shared/package.metadata.ts';
+import { readMaiaPackageVersion } from '../../../../../shared/package/read.maia.package.version.ts';
 import type { McpRequestMeta } from './mcp.request.meta.ts';
 import { MCP_MODERN_PROTOCOL_VERSION } from './protocol.versions.ts';
 
@@ -8,7 +8,7 @@ export function createModernRequestMeta(): McpRequestMeta {
     'io.modelcontextprotocol/protocolVersion': MCP_MODERN_PROTOCOL_VERSION,
     'io.modelcontextprotocol/clientInfo': {
       name: 'maia',
-      version: MAIA_PACKAGE_METADATA.version,
+      version: readMaiaPackageVersion(),
     },
     'io.modelcontextprotocol/clientCapabilities': {},
   };
