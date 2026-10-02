@@ -7,12 +7,15 @@ import { resolveAllowedLlms } from '../../access/policy/resolve.allowed.llms.ts'
 import { normalizeVersion } from '../shared/version.ts';
 import type { CatalogDependencyBase } from '../types/dependencies/catalog.dependency.base.ts';
 import type { McpDependency } from '../types/dependencies/mcp.dependency.ts';
+import type { SkillDependency } from '../types/dependencies/skill.dependency.ts';
 import type { ToolDependency } from '../types/dependencies/tool.dependency.ts';
 import type { CatalogKind } from '../types/kinds.ts';
 import type { LockPackage } from '../types/lock/lock.package.ts';
 import type { SourceLock } from '../types/lock/source.lock.ts';
 import type { RegistryEntry } from '../types/registry.ts';
+import { hashSkillFiles } from './hash.skill.files.ts';
 import { computeLockIntegrity } from './integrity/compute.lock.integrity.ts';
+import { readSkillDirectory } from './read.skill.directory.ts';
 
 /** Performs the create package descriptor operation. */
 export function createPackageDescriptor(
@@ -38,6 +41,9 @@ export function createPackageDescriptor(
     constraints: [...(dependency.constraints ?? [])],
     allowedLlms: resolveAllowedLlms(dependency.allowedLlms ?? registryEntry?.allowedLlms, defaultAccessPolicy),
     sourceCommit: sourceInfo.commit,
+    ...(kind === 'skill' && (dependency as SkillDependency).sourceName
+      ? { sourceName: (dependency as SkillDependency).sourceName }
+      : {}),
     provenance: {
       repo: sourceInfo.url,
       ref: sourceInfo.ref ?? 'main',
@@ -81,6 +87,10 @@ export function createPackageDescriptor(
     if (existsSync(resolvedPath) && statSync(resolvedPath).isFile()) {
       const hash = createHash('sha256').update(readFileSync(resolvedPath)).digest('hex');
       descriptor.artifactHash = `sha256:${hash}`;
+    } else if (kind === 'skill' && existsSync(resolvedPath) && statSync(resolvedPath).isDirectory()) {
+      const { files, artifactHash } = hashSkillFiles(readSkillDirectory(resolvedPath));
+      descriptor.files = files;
+      descriptor.artifactHash = artifactHash;
     }
   }
 

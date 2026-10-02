@@ -16,6 +16,10 @@ export interface LockPackage {
   allowedLlms: string[];
   sourceCommit?: string;
   artifactHash?: string;
+  /** Per-file hashes of a skill folder (path relative to the folder → `sha256:<hex>`). */
+  files?: Record<string, string>;
+  /** Skill name at the source when it was installed under another local name (`--as`). */
+  sourceName?: string;
   provenance: {
     repo: string;
     ref: string;

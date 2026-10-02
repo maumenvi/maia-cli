@@ -23,5 +23,9 @@ export function createLockIntegrityPayload(pkg: LockPackage) {
     },
     inputSchema: pkg.inputSchema ?? null,
     vscode: pkg.vscode ?? null,
+    // Only present for skill folders / renamed skills, so older lockfiles keep
+    // exactly the integrity they were written with.
+    ...(pkg.files ? { files: pkg.files } : {}),
+    ...(pkg.sourceName ? { sourceName: pkg.sourceName } : {}),
   };
 }

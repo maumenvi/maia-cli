@@ -100,4 +100,10 @@ describe('isLockStale', () => {
     assert.equal(isLockStale(onDisk, regenerated), true);
     assert.equal(isLockStale(buildLock({}), { ...buildLock({}), toolkits: {} }), false);
   });
+
+  it('ignores a skill folder files map (disk-dependent, like artifactHash)', () => {
+    const withFiles = buildLock({ 'skill:demo': buildPackage({ files: { 'SKILL.md': 'sha256:aa' } }) });
+    const withoutFiles = buildLock({ 'skill:demo': buildPackage() });
+    assert.equal(isLockStale(withFiles, withoutFiles), false);
+  });
 });
