@@ -34,7 +34,7 @@ async function serve<T>(routes: Record<string, Buffer | string>, run: () => Prom
   console.warn = (...args: unknown[]) => { warnings.push(args.join(' ')); };
   globalThis.fetch = (async (input: RequestInfo | URL) => {
     const body = routes[String(input)];
-    return body === undefined ? new Response('missing', { status: 404 }) : new Response(body);
+    return body === undefined ? new Response("missing", { status: 404 }) : new Response(typeof body === "string" ? body : new Uint8Array(body));
   }) as typeof fetch;
   try {
     return { result: await run(), warnings };
