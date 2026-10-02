@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: Descrição do usuário: `DOC/issue-registro-outros-agentes.md`. A feature 009 corrigiu
+**Input**: Descrição do usuário: issue original em [issue.md](./issue.md). A feature 009 corrigiu
 o registro do proxy `maia` no Claude Code. Na mesma pesquisa apareceram três agentes em que o
 arquivo que o Maia grava provavelmente não é lido, ou é lido com o formato errado: Cursor
 (chave `servers` em vez de `mcpServers`), Cline (lê só o arquivo global) e Continue (formato
