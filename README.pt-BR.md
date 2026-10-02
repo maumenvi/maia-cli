@@ -94,6 +94,7 @@ O Maia é útil em cenários como:
   - [Instalação estilo npm](#instalação-estilo-npm)
   - [Lock e contexto](#lock-e-contexto)
   - [Outros comandos](#outros-comandos)
+- [Erros conhecidos](#erros-conhecidos)
 - [Mais documentação](#mais-documentação)
 
 ## Requisitos
@@ -221,11 +222,13 @@ O `configureAgents` grava o proxy `maia` e as capacidades autorizadas nos locais
 | --- | --- | --- | --- |
 | Claude | `.mcp.json` | `.claude/skills/<nome>/` | `CLAUDE.md` |
 | VS Code Copilot | `.vscode/mcp.json` | `.github/skills/<nome>/` | `.github/copilot-instructions.md` |
-| Cursor | `.cursor/mcp.json` | — | `.cursor/rules/maia.mdc` |
+| Cursor ⚠️ | `.cursor/mcp.json` | — | `.cursor/rules/maia.mdc` |
 | Zed | `.zed/settings.json` | — | `AGENTS.md` |
-| Cline | `.cline/mcp.json` | — | `.clinerules/maia.md` |
-| Continue | `.continue/config.json` | — | `AGENTS.md` |
+| Cline ⚠️ | `.cline/mcp.json` | — | `.clinerules/maia.md` |
+| Continue ⚠️ | `.continue/config.json` | — | `AGENTS.md` |
 | OpenAI Codex | `.codex/config.toml` | — | `AGENTS.md` |
+
+⚠️ Veja [Erros conhecidos](#erros-conhecidos): o registro nesses agentes pode ainda não ter efeito.
 
 Nenhum arquivo de projeto escrito para um agente contém caminho da máquina, então eles podem ser versionados e compartilhados. Copilot e Cursor recebem `"cwd": "${workspaceFolder}"`; os demais agentes iniciam os servidores dentro do projeto, e o `maia mcp-server` encontra o projeto sozinho: por `CLAUDE_PROJECT_DIR` (definida pelo Claude Code) ou subindo a partir da pasta em que foi iniciado. Fora de qualquer projeto ele termina com erro, em vez de criar `.maia/` ali.
 
@@ -388,6 +391,23 @@ maia rm <skill|mcp|tool> <name>
 maia guardrail check <caminho...>
 maia version
 ```
+
+## Erros conhecidos
+
+Problemas em aberto encontrados ao corrigir o registro no Claude Code na 1.7.0. Eles vão virar uma especificação própria; até lá, use os contornos abaixo.
+
+| Área | Problema | Contorno |
+| --- | --- | --- |
+| Cursor | O Maia grava o proxy na chave `servers` do `.cursor/mcp.json`, mas o Cursor lê `mcpServers`, então o servidor `maia` provavelmente não aparece. | Edite o `.cursor/mcp.json` e renomeie a chave `servers` para `mcpServers`. |
+| Cline | O Cline lê servidores MCP só do arquivo global `cline_mcp_settings.json`; o `.cline/mcp.json` que o Maia grava no projeto não tem efeito. | Copie a entrada `maia` do `.cline/mcp.json` para as configurações de MCP do Cline, com `cwd` apontando para a pasta do projeto. |
+| Continue | O Maia grava `.continue/config.json`; o Continue atual usa YAML (`.continue/mcpServers/*.yaml`). | Crie `.continue/mcpServers/maia.yaml` listando um servidor MCP (`name: maia`, `command: maia`, `args: [mcp-server, --agent, continue]`). |
+| OpenAI Codex | O `.codex/config.toml` do projeto só vale quando o Codex confia no projeto. | Marque o projeto como confiável no Codex. |
+| Zed | O formato do registro e a pasta de início não foram verificados numa sessão real do Zed. | Relate o que observar. |
+| Skills `.well-known` | Arquivos publicados como `.zip` não são descompactados; só o `SKILL.md` é instalado, com aviso. | Peça ao publicador um `.tar.gz` ou instale a partir do repositório Git. |
+| Lockfile v3 | Versões do Maia anteriores à 1.7.0 recusam o `maia.lock.json` com skills de pasta (`lockfileVersion: 3`). | Atualize o Maia em todas as máquinas e no CI ao mesmo tempo. |
+| `maia mcp sync` | Sincroniza só o `.vscode/mcp.json`; os outros agentes não são atualizados. | Rode `maia i` para atualizar todos os agentes configurados. |
+
+Nenhuma das linhas de agentes acima foi reproduzida com o agente real ainda; elas vêm do código do Maia e da documentação pública de cada agente.
 
 ## Mais documentação
 

@@ -48,6 +48,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `maia verify` names the missing, changed or unexpected file. Older Maia versions refuse a v3
   lockfile, so upgrade every machine and CI together.
 
+### Known issues
+- Cursor (`servers` instead of `mcpServers`), Cline (reads only its global settings file) and
+  Continue (expects `.continue/mcpServers/*.yaml`) may not pick up the `maia` proxy. See
+  "Known issues" in the README for workarounds; a follow-up specification will fix them.
+
 ## [1.6.2] - 2026-10-01
 
 ### Fixed
