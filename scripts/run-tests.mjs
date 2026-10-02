@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, readdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -35,6 +36,8 @@ function removeEmptyDirectory(relativePath) {
 }
 
 let exitCode = 0;
+// Tests must never read or write the developer's real global Maia config.
+const configHome = mkdtempSync(path.join(os.tmpdir(), 'maia-test-config-'));
 
 try {
   const testArguments = process.argv.includes('--coverage')
@@ -49,7 +52,7 @@ try {
   const result = spawnSync(process.execPath, testArguments, {
     cwd: rootDir,
     stdio: 'inherit',
-    env: process.env,
+    env: { ...process.env, MAIA_CONFIG_HOME: configHome },
   });
 
   if (result.error) {
@@ -58,6 +61,7 @@ try {
 
   exitCode = result.status ?? 1;
 } finally {
+  rmSync(configHome, { recursive: true, force: true });
   for (const relativePath of artifactPaths) {
     removeIfCreatedByTests(relativePath);
   }
