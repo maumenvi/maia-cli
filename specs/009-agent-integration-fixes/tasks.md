@@ -231,7 +231,7 @@ research D10; contracts/cli.install.md).
 
 **Independent Test**: quickstart §5, com `security-review` com e sem `--as`.
 
-- [ ] T037 [US6] Em `src/agent/agents/registry/claude.ts`, adicionar `nativeCommands` com a lista do research D10. Criar `src/cli/commands/skills/find.native.command.collisions.ts` com a função pura `(name, targets) => Array<{ agentName }>`. Em `run.skills.cli.ts`, depois de instalar, para cada agente configurado com colisão, `console.warn('warning: skill "<n>" has the same name as the built-in /<n> command of <Agente>; install it under another name with --as <name>.')`. Testes: `tests/shared/find.native.command.collisions.test.ts`; em `tests/cli/skills.test.ts`, `security-review` com claude configurado → aviso, e sem agente → sem aviso. Depende de T011, T014.
+- [X] T037 [US6] Em `src/agent/agents/registry/claude.ts`, adicionar `nativeCommands` com a lista do research D10. Criar `src/cli/commands/skills/find.native.command.collisions.ts` com a função pura `(name, targets) => Array<{ agentName }>`. Em `run.skills.cli.ts`, depois de instalar, para cada agente configurado com colisão, `console.warn('warning: skill "<n>" has the same name as the built-in /<n> command of <Agente>; install it under another name with --as <name>.')`. Testes: `tests/shared/find.native.command.collisions.test.ts`; em `tests/cli/skills.test.ts`, `security-review` com claude configurado → aviso, e sem agente → sem aviso. Depende de T011, T014.
 - [ ] T038 [US6] `--as <nome>` em `skills add`:
   - validar com `^[A-Za-z0-9._-]+$` (erro `Invalid skill name "<nome>"`);
   - adicionar `sourceName?: string` em `src/agent/catalog/types/dependencies/skill.dependency.ts`;

@@ -9,6 +9,7 @@ import { restoreConfiguredAgents } from '../init/restore.configured.agents.ts';
 import { directGitHubResult } from './direct.git.hub.result.ts';
 import { discoverSkillsFromStore } from './discover.skills.from.store.ts';
 import type { SpawnFn } from './spawn.fn.ts';
+import { warnAboutNativeCommandCollisions } from './warn.about.native.command.collisions.ts';
 
 /** Performs the run skills cli operation. */
 export async function runSkillsCli(
@@ -56,6 +57,7 @@ export async function runSkillsCli(
     }
     await installCatalogResult(store, selected, { flags, interaction });
     console.log(`Installed skill:${selected.name}`);
+    warnAboutNativeCommandCollisions(store, selected.name);
     restoreConfiguredAgents(store);
     return 0;
   }
