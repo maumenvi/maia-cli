@@ -268,7 +268,7 @@ research D10; contracts/cli.install.md).
   - `### Changed`: `maia.lock.json` v3 com skills de pasta, e um Maia antigo recusa esse lock.
 
   O teste é a suíte inteira, incluindo `maia.version.sync.test.ts`.
-- [ ] T041 Validação final: executar `specs/009-agent-integration-fixes/quickstart.md` §1–§7 (com `MAIA_CONFIG_HOME` temporário e `fetch`/fixtures onde houver rede; a parte manual do Claude Code fica anotada como pendente para a pessoa mantenedora). Registrar o resultado em `checklists/requirements.md` (Notes) e marcar `[X]` nesta lista. Commitar `specs/009-agent-integration-fixes/`.
+- [X] T041 Validação final: executar `specs/009-agent-integration-fixes/quickstart.md` §1–§7 (com `MAIA_CONFIG_HOME` temporário e `fetch`/fixtures onde houver rede; a parte manual do Claude Code fica anotada como pendente para a pessoa mantenedora). Registrar o resultado em `checklists/requirements.md` (Notes) e marcar `[X]` nesta lista. Commitar `specs/009-agent-integration-fixes/`.
 
 ---
 
