@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { AgentCatalogStore } from '../agent/catalog/store/agent.catalog.store.ts';
 import { findProjectRoot } from '../config/core/find.project.root.ts';
+import { resolveMcpServerProjectRoot } from '../config/core/resolve.mcp.server.project.root.ts';
 import { helpCommand } from './commands/help.ts';
 import { commandHandlers } from './commands/command.handlers.ts';
 import { COMMAND_HELP } from './help/command.help.ts';
@@ -28,8 +29,21 @@ async function main(): Promise<void> {
 
   // Resolve the project from the working directory upwards, so running from a
   // subdirectory addresses the same project rather than starting a new one.
+  let projectRoot = findProjectRoot(process.cwd()) ?? process.cwd();
+  if (effectiveCommand === 'mcp-server') {
+    // Agents start the proxy without any path in their config: it must find
+    // the project itself, and never create Maia state in an unrelated folder.
+    const resolved = resolveMcpServerProjectRoot({ env: process.env, cwd: process.cwd(), find: findProjectRoot });
+    if (!resolved) {
+      throw new Error(
+        `no Maia project found from ${process.cwd()} `
+        + '(set the agent\'s working directory to the project or run "maia init <agent>" there).',
+      );
+    }
+    projectRoot = resolved;
+  }
   const context: CliContext = {
-    store: new AgentCatalogStore({ cwd: findProjectRoot(process.cwd()) ?? process.cwd() }),
+    store: new AgentCatalogStore({ cwd: projectRoot }),
   };
 
   const handler = commandHandlers[effectiveCommand] ?? helpCommand;
