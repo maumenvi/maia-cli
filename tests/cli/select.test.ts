@@ -4,6 +4,7 @@ import { describe, it } from 'node:test';
 import type { CatalogSearchResult } from '../../src/agent/catalog/providers/contracts/catalog.search.result.ts';
 import type { MCPConfig } from '../../src/agent/tools/contracts/mcp.config.ts';
 import { extractCredentialEnvHints } from '../../src/cli/shared/select/extract.credential.env.hints.ts';
+import { selectCatalogResult } from '../../src/cli/shared/select/select.catalog.result.ts';
 
 function mcpResult(vscode: MCPConfig): CatalogSearchResult {
   return {
@@ -56,5 +57,38 @@ describe('extractCredentialEnvHints', () => {
     };
 
     assert.deepEqual(extractCredentialEnvHints(result), []);
+  });
+});
+
+describe('selectCatalogResult', () => {
+  const results: CatalogSearchResult[] = [
+    { ...mcpResult({ command: 'a' }), id: 'a', name: 'a', displayName: 'Alpha' },
+    { ...mcpResult({ command: 'b' }), id: 'b', name: 'b', displayName: 'Beta' },
+  ];
+
+  async function run(answers: string[]): Promise<{ selected: CatalogSearchResult | null; output: string[] }> {
+    const output: string[] = [];
+    const originalLog = console.log;
+    console.log = (...args: unknown[]) => { output.push(args.join(' ')); };
+    try {
+      const selected = await selectCatalogResult(results, {
+        trustOf: (result) => result.id === 'a',
+        questionFn: async () => answers.shift() ?? '0',
+      });
+      return { selected, output };
+    } finally {
+      console.log = originalLog;
+    }
+  }
+
+  it('labels each option with the trust of its source', async () => {
+    const { output } = await run(['0']);
+    assert.ok(output.some((line) => line.startsWith('1) Alpha') && line.includes('[trusted]')));
+    assert.ok(output.some((line) => line.startsWith('2) Beta') && line.includes('[untrusted]')));
+  });
+
+  it('returns null on cancel and the chosen result otherwise', async () => {
+    assert.equal((await run(['0'])).selected, null);
+    assert.equal((await run(['9', '2'])).selected?.id, 'b');
   });
 });
