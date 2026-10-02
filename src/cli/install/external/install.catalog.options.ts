@@ -6,6 +6,8 @@ export interface InstallCatalogOptions {
   flags?: Record<string, string>;
   /** Terminal interaction; defaults to the real terminal. */
   interaction?: CliInteraction;
+  /** Local name for a skill installed under another name (`--as`). */
+  localName?: string;
   /** Where requested MCP credentials are written. */
   envScope?: 'project' | 'global';
 }

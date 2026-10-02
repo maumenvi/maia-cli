@@ -32,8 +32,10 @@ export async function installCatalogResult(
   store.addSource(resolved.sourceAlias, declared ? { ...resolved.source, trusted: declared.trusted } : resolved.source);
 
   if (result.kind === 'skill') {
+    const localName = options.localName && options.localName !== result.name ? options.localName : undefined;
     await installSkill(store, {
-      name: result.name,
+      name: localName ?? result.name,
+      ...(localName ? { sourceName: result.name } : {}),
       source: resolved.sourceAlias,
       version: result.version ?? '*',
       allowedLlms,

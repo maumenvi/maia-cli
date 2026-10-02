@@ -40,7 +40,7 @@ export async function installSkill(store: AgentCatalogStore, options: SkillInsta
       };
       store.addSource(options.source, source);
     }
-    targetPath = await materializeRemoteSkill(store, options.name, source);
+    targetPath = await materializeRemoteSkill(store, options.sourceName ?? options.name, source, path.posix.join('skills', options.name));
   }
 
   await withRollback([
@@ -56,6 +56,7 @@ export async function installSkill(store: AgentCatalogStore, options: SkillInsta
         capabilities: [],
         constraints: [],
         allowedLlms: options.allowedLlms,
+        ...(options.sourceName ? { sourceName: options.sourceName } : {}),
         path: path.relative(store.getPaths().stateDir, targetPath).replaceAll('\\', '/'),
       }),
       undo: () => store.removeDependency('skill', options.name),

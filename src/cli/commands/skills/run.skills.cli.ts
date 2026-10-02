@@ -45,6 +45,13 @@ export async function runSkillsCli(
     if (!target) {
       throw new Error('Usage: maia skills add <skill-name|owner/repo@skill>');
     }
+    const localName = flags.as;
+    if (localName === 'true') {
+      throw new Error('Usage: maia skills add <skill-name|owner/repo@skill> --as <name>');
+    }
+    if (localName !== undefined && !/^[A-Za-z0-9._-]+$/.test(localName)) {
+      throw new Error(`Invalid skill name "${localName}"`);
+    }
     const selected = directGitHubResult(store, target) ?? await chooseCatalogResult({
       query: target,
       results: await discoverSkillsFromStore(store, target),
@@ -55,9 +62,12 @@ export async function runSkillsCli(
     if (!selected) {
       return 0;
     }
-    await installCatalogResult(store, selected, { flags, interaction });
-    console.log(`Installed skill:${selected.name}`);
-    warnAboutNativeCommandCollisions(store, selected.name);
+    await installCatalogResult(store, selected, { flags, interaction, localName });
+    const installedName = localName ?? selected.name;
+    console.log(localName && localName !== selected.name
+      ? `Installed skill:${localName} (from ${selected.name})`
+      : `Installed skill:${installedName}`);
+    warnAboutNativeCommandCollisions(store, installedName);
     restoreConfiguredAgents(store);
     return 0;
   }
