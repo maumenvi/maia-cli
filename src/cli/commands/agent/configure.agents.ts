@@ -23,6 +23,9 @@ export function configureAgents(store: AgentCatalogStore, agentIds: string[]): v
     const configPath = resolveConfigPath(target, cwd);
     if (!isProjectLocalConfig(configPath, cwd)) {
       console.log(`Skipping ${target.name} config injection: this project is local-only and does not modify global agent configs.`);
+      // Rewrite the guidance anyway, so an older block never keeps claiming
+      // a registration that does not exist.
+      writeAgentInstructions(store, target, { status: 'skipped', reason: 'this project is local-only' });
       continue;
     }
 
@@ -53,7 +56,7 @@ export function configureAgents(store: AgentCatalogStore, agentIds: string[]): v
       console.log(`Copied ${copiedSkills.length} skill(s) into ${target.name}'s native skills directory.`);
     }
 
-    const instructionsFile = writeAgentInstructions(store, target);
+    const instructionsFile = writeAgentInstructions(store, target, { status: 'registered', configPath: finalPath });
     if (instructionsFile) {
       console.log(`Updated capability guidance for ${target.name}: ${instructionsFile}`);
     }
