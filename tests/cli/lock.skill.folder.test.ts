@@ -42,3 +42,21 @@ describe('lockfile entries for skill folders (FR-012)', () => {
     assert.equal('sourceName' in payload, false);
   });
 });
+
+describe('lockfileVersion for skill folders', () => {
+  it('is 3 from the manifest alone, even before the folder is restored', () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'maia-lock-v3-'));
+    try {
+      const store = new AgentCatalogStore({ cwd: dir });
+      store.saveManifest(store.loadManifest());
+      store.addDependency('skill', 'demo', {
+        version: '*', source: 'local', enabled: true, capabilities: [], constraints: [],
+        allowedLlms: ['*'], path: 'skills/demo',
+      });
+      // No .maia/skills/demo on disk: the clean-clone case.
+      assert.equal(store.buildLock().lockfileVersion, 3);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
