@@ -11,6 +11,7 @@ import { defaultToolkitIo } from '../toolkit/default.toolkit.io.ts';
 import { restoreToolkits } from '../toolkit/restore.toolkits.ts';
 import type { ToolkitIo } from '../toolkit/toolkit.io.ts';
 import { installNamedCapability } from './install.named.capability.ts';
+import { upgradeSingleFileSkills } from './upgrade.single.file.skills.ts';
 
 /** Builds the install command over the given toolkit side effects. */
 export function createInstallCommand(io: ToolkitIo): CommandHandler {
@@ -26,6 +27,7 @@ export function createInstallCommand(io: ToolkitIo): CommandHandler {
       if (migrateLocalRef) {
         store.saveManifest(migrateStaleLocalSourceRef(manifest, readMaiaPackageVersion()));
       }
+      await upgradeSingleFileSkills(store);
       const lock = store.buildLock();
       if (migrateLocalRef) {
         console.log(
