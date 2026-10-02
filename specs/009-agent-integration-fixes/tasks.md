@@ -252,7 +252,7 @@ research D10; contracts/cli.install.md).
 
 ## Phase 9: Polish & Cross-Cutting Concerns
 
-- [ ] T039 [P] Documentação: em `README.md` e `README.pt-BR.md`:
+- [X] T039 [P] Documentação: em `README.md` e `README.pt-BR.md`:
   - **Claude:** `.mcp.json`, migração do legado e aprovação na primeira sessão;
   - **Todos os agentes:** sem caminho absoluto, tabela de `cwd` por agente e descoberta da raiz pelo `maia mcp-server` (`CLAUDE_PROJECT_DIR` ou a pasta atual);
   - **Skills:** pasta completa, `--as` e aviso de colisão;

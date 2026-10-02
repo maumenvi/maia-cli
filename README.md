@@ -204,11 +204,18 @@ The CLI can discover skills through:
 - `provider: "skills.sh"` (`https://skills.sh`)
 - `provider: "github-skills"` (`https://api.github.com`)
 
-Resilience behavior:
+Installing from a search is always an explicit choice:
 
-- uses the canonical identifier to install a skill;
-- if one entry is stale or unavailable, `maia skills add <query>` automatically tries the next match;
-- in `maia skills find`, you can select another result if the chosen source fails.
+- an exact identifier (`owner/repo@skill`, or a name that matches exactly one result) installs directly;
+- any other query lists the candidates, each marked `[trusted]` or `[untrusted]`, and installs only the one you pick (`0` cancels);
+- without an interactive terminal (CI, pipes, agents) an ambiguous query fails and prints the exact identifiers to use — Maia never installs the first search hit;
+- `--help`/`-h` on any command only prints help: it never searches a catalog or installs anything.
+
+A skill is installed as its **whole folder** — `SKILL.md` plus every supporting file (`references/`, `scripts/`, assets) — into `.maia/skills/<name>/` and into the agent's native skills directory. `maia.lock.json` records a hash per file (lockfile version 3), so `maia verify` names any file that is missing, changed or unexpected, and `maia ci` restores the whole folder. Limits: 200 files and 5 MB per skill; paths escaping the folder and symlinks are refused. Running `maia i` upgrades skills installed by older versions (only `SKILL.md`) to their full folder.
+
+If a skill has the same name as a built-in command of a configured agent (for example `security-review` in Claude Code), Maia warns you; install it under another name with `--as <name>`.
+
+Capabilities from an **untrusted** source are not authorized for any agent without consent: on a terminal Maia asks (default *no*); elsewhere it installs them with no agent access and tells you to re-run with `--all-llms` (or `--llms <ids>`).
 
 ### MCP
 
@@ -227,7 +234,7 @@ In `maia mcp find`:
 - shows `Requer chave/token: ...`;
 - shows `Onde obter: ...` when the registry metadata includes a description or URL.
 
-In `maia mcp add` (or installation through selection in `find`):
+In `maia mcp add` / `maia mcp i` (or installation through selection in `find`):
 
 - detects required variables;
 - prompts for values without echoing secrets in the interactive terminal;
@@ -235,7 +242,11 @@ In `maia mcp add` (or installation through selection in `find`):
 - preserves custom entries and removes obsolete auto-generated defaults from older templates;
 - rebuilds those MCP variables during `maia install` and `maia ci` from `maia.lock.json`, without overwriting the real project `.env`.
 
-Opening an MCP transport reads only `.maia/mcp.env`; it does not load or modify the project's `.env`. Maia stores its manifest and lock in `maia.json` and `maia.lock.json`, and fallback capabilities under `.maia/mcp`, `.maia/skills`, and `.maia/tools`, with per-agent authorization profiles under `.maia/agents`.
+#### Global credentials (`--env-g`)
+
+Credentials you use in many projects can live in a per-user file instead: `maia mcp i <name> --env-g` (also `-env-g` / `--env-global`, and on `maia mcp find`) writes the requested values to `${XDG_CONFIG_HOME:-~/.config}/maia/mcp.env` (`%APPDATA%\maia\mcp.env` on Windows; override with `MAIA_CONFIG_HOME`), created readable only by you (`0600`). A variable that already has a global value is not asked for again, and no empty placeholder is added to the project for it. When an MCP starts, values are resolved as **process environment > project `.maia/mcp.env` > global file**; an empty project entry never hides the global value.
+
+Opening an MCP transport reads only `.maia/mcp.env` and the global file; it does not load or modify the project's `.env`. Maia stores its manifest and lock in `maia.json` and `maia.lock.json`, and fallback capabilities under `.maia/mcp`, `.maia/skills`, and `.maia/tools`, with per-agent authorization profiles under `.maia/agents`.
 
 Each native agent bootstrap runs `maia mcp-server --agent <id>`. This identity lets the aggregate MCP expose only the skills, tools, and proxied MCPs authorized for that selected agent. Native bootstrap files such as `.vscode/mcp.json` or `.codex/config.toml` remain in the client-required locations; all Maia-owned state stays under `.maia/`.
 
@@ -243,13 +254,17 @@ Each native agent bootstrap runs `maia mcp-server --agent <id>`. This identity l
 
 | Agent | MCP config | Skills | Instructions |
 | --- | --- | --- | --- |
-| Claude | `.mcp.json` (fallback `.claude/claude_desktop_config.json`) | `.claude/skills/<name>/SKILL.md` | `CLAUDE.md` |
-| VS Code Copilot | `.vscode/mcp.json` | — | `.github/copilot-instructions.md` |
+| Claude | `.mcp.json` | `.claude/skills/<name>/` | `CLAUDE.md` |
+| VS Code Copilot | `.vscode/mcp.json` | `.github/skills/<name>/` | `.github/copilot-instructions.md` |
 | Cursor | `.cursor/mcp.json` | — | `.cursor/rules/maia.mdc` |
 | Zed | `.zed/settings.json` | — | `AGENTS.md` |
 | Cline | `.cline/mcp.json` | — | `.clinerules/maia.md` |
 | Continue | `.continue/config.json` | — | `AGENTS.md` |
 | OpenAI Codex | `.codex/config.toml` | — | `AGENTS.md` |
+
+No project file written for an agent contains a machine path, so they can be committed and shared. Copilot and Cursor get `"cwd": "${workspaceFolder}"`; the other agents start servers inside the project, and `maia mcp-server` finds the project itself — from `CLAUDE_PROJECT_DIR` (set by Claude Code) or by walking up from its working directory. Started outside any project it exits with an error instead of creating `.maia/` there.
+
+For Claude Code, the proxy is registered in `.mcp.json` (Claude Code asks you to approve project servers the first time). Projects set up by older Maia versions had it in `.claude/claude_desktop_config.json`, which Claude Code never reads: the next `maia i`, `maia init claude` or `maia mcp add` moves the `maia` entry to `.mcp.json` and leaves your other entries untouched. An invalid `.mcp.json` is never overwritten. The instruction block only claims the proxy is registered when that really happened, and names the file.
 
 Only capabilities authorized for the agent (via `allowedLlms` / `llmAccessDefault`) are delivered, and the instruction block sits between `<!-- maia:capabilities:start -->` / `<!-- maia:capabilities:end -->` markers so re-runs never duplicate or clobber your own content.
 
@@ -291,7 +306,7 @@ of silently skipping them. Projects without toolkits keep `lockfileVersion: 1`.
 
 ## Security and source trust
 
-Remote sources default to untrusted. The `trusted` flag records a reviewed provenance decision; it does not sandbox or attest a package. Stdio and NPX entries execute with the current operating-system user's permissions, even though Maia limits inherited environment variables.
+Remote sources default to untrusted, and installing from them never authorizes agents without your consent (see [Skills](#skills)). The `trusted` flag records a reviewed provenance decision; it does not sandbox or attest a package. Stdio and NPX entries execute with the current operating-system user's permissions, even though Maia limits inherited environment variables.
 
 Review executable commands and dependencies, prefer immutable refs, pin versions, restrict credentials and LLM access, and run CI in an isolated least-privilege environment. See the complete [security and trust policy](./SECURITY.md).
 
@@ -333,17 +348,19 @@ Selected agents are always persisted in `maia.json`; no additional save flag is 
 ### Skills
 
 ```bash
-maia skills find <query>
-maia skills add <skill-name|owner/repo@skill>
+maia skills find <query> [--all-llms | --llms <ids>]
+maia skills add <skill-name|owner/repo@skill> [--as <name>] [--all-llms | --llms <ids>]
 ```
 
 ### MCP
 
 ```bash
-maia mcp find <query>
-maia mcp add <name>
+maia mcp find <query> [--env-g] [--all-llms | --llms <ids>]
+maia mcp i|add|install <name> [--env-g] [--all-llms | --llms <ids>]
 maia mcp sync
 ```
+
+Every command accepts `--help` / `-h`.
 
 ### npm-style installation
 

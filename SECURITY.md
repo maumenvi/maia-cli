@@ -8,11 +8,24 @@ The `trusted` source flag is an explicit provenance decision recorded in `maia.l
 
 Set `--trusted true` only after reviewing the source owner, repository URL, selected ref, executable commands, install scripts, dependency graph, requested credentials, network destinations, and filesystem access. Prefer immutable commit references over moving branches or tags.
 
+## Installing from a search
+
+Skill instructions are followed by agents, so nothing is installed implicitly:
+
+- `--help` / `-h` on any command only prints help; it never searches a catalog or installs.
+- A query that is not an exact identifier (`owner/repo@skill`, or a name matching exactly one result) is shown as a list with each source marked `[trusted]` / `[untrusted]`, and only the entry the user picks is installed. Without an interactive terminal the command fails instead of choosing.
+- A capability from an untrusted source is not authorized for any agent (`allowedLlms: []`) unless the user consents: an interactive confirmation (default *no*) or an explicit `--all-llms` / `--llms <ids>`. Re-running `add` with those flags grants access later.
+- A trust decision already recorded for a source (`maia source add --trusted ...`) is kept; installing never changes it.
+
 ## Lock and integrity guarantees
 
-`maia.lock.json` binds package metadata to its source URL, ref, trust decision, resolved commit, and materialized artifact hash when one is available. `maia verify` detects metadata drift, missing files, and changed artifacts. `maia ci` first validates lock metadata and every existing artifact, restores only after that preflight succeeds, and then performs strict verification again.
+`maia.lock.json` binds package metadata to its source URL, ref, trust decision, resolved commit, and materialized artifact hash when one is available. A skill is locked as its whole folder with one hash per file, so `maia verify` names the file that is missing, changed or unexpected. Skill folders are limited to 200 files and 5 MB; paths that escape the folder and symlinks are refused, and `.well-known` archives are checked against their published digest. `maia verify` detects metadata drift, missing files, and changed artifacts. `maia ci` first validates lock metadata and every existing artifact, restores only after that preflight succeeds, and then performs strict verification again.
 
 These checks provide reproducibility and tamper evidence. They do not establish that the original source or package was benign.
+
+## Credentials
+
+MCP credentials live in the project's `.maia/mcp.env` (git-ignored) or, with `--env-g`, in a per-user file (`${XDG_CONFIG_HOME:-~/.config}/maia/mcp.env`) created with mode `0600` in a `0700` directory; Maia warns if an existing global file is readable by other users. Neither file is ever written by `maia i` / `maia ci` with real values, and no project file written for an agent contains a machine path.
 
 ## Executable MCP packages
 
