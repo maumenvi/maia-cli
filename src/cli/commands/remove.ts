@@ -79,7 +79,7 @@ export const removeCommand: CommandHandler = async (args, { store }) => {
       },
     },
     {
-      run: () => {
+      run: async () => {
         if (materializedPath) {
           removeMaterializedFile(materializedPath);
         }
@@ -98,7 +98,7 @@ export const removeCommand: CommandHandler = async (args, { store }) => {
           }
         }
         if (kind === 'mcp' || kind === 'skill') {
-          restoreConfiguredAgents(store);
+          await restoreConfiguredAgents(store);
         }
       },
       // The final artifact-removal step has no meaningful undo of its own:

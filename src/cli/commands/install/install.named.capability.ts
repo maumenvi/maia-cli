@@ -133,6 +133,6 @@ export async function installNamedCapability(
     store.buildLock();
   }
 
-  restoreConfiguredAgents(store);
+  await restoreConfiguredAgents(store);
   console.log(`Installed ${kind}:${name}`);
 }

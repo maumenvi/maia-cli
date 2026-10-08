@@ -9,8 +9,8 @@ export interface AgentMcpServerConfig {
   env?: Record<string, string>;
   /** Working directory passed to the spawned process */
   cwd?: string;
-  /** Remote transport kind for http / sse / ws MCP servers. */
-  type?: 'http' | 'sse' | 'ws';
+  /** Transport kind required by some agent MCP config formats. */
+  type?: 'stdio' | 'http' | 'sse' | 'ws';
   /** Remote transport endpoint for http / sse / ws MCP servers. */
   url?: string;
   /** Headers sent with remote transport requests. */

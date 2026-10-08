@@ -1,4 +1,5 @@
 /** Outcome of registering the Maia proxy in one agent's config file. */
 export type AgentRegistration =
-  | { status: 'registered'; configPath: string }
-  | { status: 'skipped'; reason: string };
+  | { status: 'registered'; configPath: string; note?: string }
+  | { status: 'skipped'; reason: string }
+  | { status: 'pending'; reason: string; manualStep: string };

@@ -36,7 +36,7 @@ export async function runSkillsCli(
     }
     await installCatalogResult(store, selected, { flags, interaction });
     console.log(`Installed skill:${selected.name}`);
-    restoreConfiguredAgents(store);
+    await restoreConfiguredAgents(store);
     return 0;
   }
 
@@ -68,7 +68,7 @@ export async function runSkillsCli(
       ? `Installed skill:${localName} (from ${selected.name})`
       : `Installed skill:${installedName}`);
     warnAboutNativeCommandCollisions(store, installedName);
-    restoreConfiguredAgents(store);
+    await restoreConfiguredAgents(store);
     return 0;
   }
 

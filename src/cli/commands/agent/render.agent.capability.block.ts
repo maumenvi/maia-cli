@@ -38,6 +38,20 @@ export function renderAgentCapabilityBlock(
     const docs = docsUrl ? ` — docs: ${docsUrl}` : '';
     return `- \`${toolkit.name}\` ${toolkit.version} (${toolkit.scope})${docs}; details via the \`maia_toolkits\` MCP tool`;
   });
+  const registrationLines = registration.status === 'registered'
+    ? [
+      target.id === 'cline'
+        ? `The \`maia\` MCP proxy is registered for this agent in Cline's global MCP settings (${registration.note ?? 'project entry'}); the capabilities below are reachable through it.`
+        : `The \`maia\` MCP proxy is registered for this agent in \`${path.relative(projectRoot, registration.configPath)}\`; the capabilities below are reachable through it.`,
+      ...(target.skillsDir ? ['Skills are also copied into this agent\'s native skills directory.'] : []),
+      ...(target.registrationNote ? [target.registrationNote] : []),
+    ]
+    : registration.status === 'pending'
+      ? [
+        `No MCP server is registered for this agent yet: ${registration.reason}.`,
+        registration.manualStep.replaceAll(projectRoot, '<absolute path of this project>'),
+      ]
+      : [`No MCP server is registered for this agent: ${registration.reason}. Run \`maia init ${target.id}\` in the project to register it.`];
 
   const lines = [
     CAPABILITY_BLOCK_START,
@@ -47,12 +61,7 @@ export function renderAgentCapabilityBlock(
     '',
     // Only claim what actually happened: the agent reads this text and goes
     // looking for the tools it promises.
-    ...(registration.status === 'registered'
-      ? [
-        `The \`maia\` MCP proxy is registered for this agent in \`${path.relative(projectRoot, registration.configPath)}\`; the capabilities below are reachable through it.`,
-        ...(target.skillsDir ? ['Skills are also copied into this agent\'s native skills directory.'] : []),
-      ]
-      : [`No MCP server is registered for this agent: ${registration.reason}. Run \`maia init ${target.id}\` in the project to register it.`]),
+    ...registrationLines,
     'Treat `maia list-capabilities --json` as the authoritative inventory.',
     '',
     '### Skills',

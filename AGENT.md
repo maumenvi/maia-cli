@@ -87,8 +87,8 @@ agents and editors can call it automatically without repeated prompting.
 | VS Code Copilot | `.vscode/mcp.json` | — | `.github/copilot-instructions.md` |
 | Cursor | `.cursor/mcp.json` | — | `.cursor/rules/maia.mdc` |
 | Zed | `.zed/settings.json` | — | `AGENTS.md` |
-| Cline | `.cline/mcp.json` | — | `.clinerules/maia.md` |
-| Continue | `.continue/config.json` | — | `AGENTS.md` |
+| Cline | global `cline_mcp_settings.json` (per-project key) | — | `.clinerules/maia.md` |
+| Continue | `.continue/mcpServers/maia.yaml` | — | `AGENTS.md` |
 | OpenAI Codex | `.codex/config.toml` | — | `AGENTS.md` |
 
 The agent's native MCP config receives the `maia` proxy only; installed MCP servers are
@@ -199,10 +199,10 @@ commands in `specs/007-fix-package-version/quickstart.md` (section "Tags retroat
 - If a new module does not support the CLI directly, it probably should not live in this repository.
 - When adding agent compatibility, wire it through the existing agent registry and config injection flow. Set `configFormat` and, where the agent supports them, `skillsDir` / `instructionsFile` on the `AgentTarget` so `configureAgents` can register MCPs and skills in that agent's standard locations.
 - When adding runtime features, keep them compatible with the built-in MCP server and local catalog layout.
-- Known open follow-ups: `maia mcp sync` only syncs `.vscode/mcp.json` and does not re-run `restoreConfiguredAgents` for the other agents; Cline reads MCP servers only from its global `cline_mcp_settings.json`, so the project `.cline/mcp.json` Maia writes is not picked up; current Continue prefers `.continue/mcpServers/*.yaml` over `.continue/config.json`; Cursor's `mcp.json` uses the `mcpServers` key while the `cursor` target is declared with the `servers` format (see specs/009-agent-integration-fixes/research.md, D3).
+- Known open follow-ups: `maia mcp sync` only syncs `.vscode/mcp.json`; Zed project-level config loading and end-to-end connections with real clients still need manual validation. Cline has only global settings and its project-specific registration is visible in all Cline windows; registration requires interactive consent and uses `MAIA_PROJECT_DIR` to bind the proxy to the right project. Codex requires the project to be trusted before `.codex/config.toml` applies.
 - User-facing known issues live in the README "Known issues" / "Erros conhecidos" section (en/pt-BR); keep it in sync with the follow-ups above when one is fixed or found.
 - Skills are folders (`skills/<name>/`): never assume a skill is a single `SKILL.md`; lockfile version 3 records a hash per file.
-- `maia mcp-server` must find the project without a path in the agent config (`CLAUDE_PROJECT_DIR`, then walking up); never write a machine path into a project file.
+- `maia mcp-server` resolves project context from `MAIA_PROJECT_DIR`, then `CLAUDE_PROJECT_DIR`, then by walking up from cwd; never write a machine path into a project file.
 
 
 # Agents

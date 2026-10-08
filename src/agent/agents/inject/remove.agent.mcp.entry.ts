@@ -1,32 +1,33 @@
-import { existsSync } from 'node:fs';
+import { existsSync, rmSync } from 'node:fs';
 
 import type { AgentTarget } from '../contracts/agent.target.ts';
 import { readJson } from './read.json.ts';
 import { writeJson } from './write.json.ts';
+import { removeTomlMcpEntry } from './remove.toml.mcp.entry.ts';
 
-/**
- * Deletes one MCP server key from an agent's native config file, for the
- * `mcp-servers`/`servers` JSON formats. `injectAgentConfig` only ever
- * upserts, so a removed MCP would otherwise linger in every native config
- * file that isn't rebuilt from scratch (unlike `syncVsCodeMcpConfig`,
- * which already replaces its file wholesale). No-op when the config file
- * doesn't exist or the key isn't present.
- */
-export function removeAgentMcpEntry(target: AgentTarget, configPath: string, key: string): void {
-  if (target.configFormat !== 'mcp-servers' && target.configFormat !== 'servers') {
-    return;
+/** Deletes Maia's MCP entry from the selected agent's project config. */
+export function removeAgentMcpEntry(target: AgentTarget, configPath: string, key: string): boolean {
+  if (!existsSync(configPath)) return false;
+  if (target.configFormat === 'continue-mcp-block') {
+    rmSync(configPath, { force: true });
+    return true;
   }
-  if (!existsSync(configPath)) {
-    return;
+  if (target.configFormat === 'toml-mcp-servers') {
+    return removeTomlMcpEntry(configPath, key);
   }
 
-  const topKey = target.configFormat === 'mcp-servers' ? 'mcpServers' : 'servers';
   const data = readJson(configPath);
+  const topKey = target.configFormat === 'mcp-servers'
+    ? 'mcpServers'
+    : target.configFormat === 'zed-settings'
+      ? 'context_servers'
+      : 'servers';
   const servers = data[topKey] as Record<string, unknown> | undefined;
   if (!servers || !(key in servers)) {
-    return;
+    return false;
   }
 
   const { [key]: _removed, ...remaining } = servers;
   writeJson(configPath, { ...data, [topKey]: remaining });
+  return true;
 }

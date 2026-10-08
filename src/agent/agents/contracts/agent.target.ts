@@ -1,4 +1,6 @@
 import type { AgentConfigFormat } from '../inject/agent.config.format.ts';
+import type { LegacyProxyLocation } from './legacy.proxy.location.ts';
+import type { GlobalRegistration } from './global.registration.ts';
 import type { MCPConfig } from '../../tools/contracts/mcp.config.ts';
 
 /** Describes the agent target contract. */
@@ -29,14 +31,20 @@ export interface AgentTarget {
    * Config files older Maia versions wrote for this agent. They are never a
    * destination: Maia only moves its own `maia` entry out of them.
    */
-  legacyConfigPaths?(cwd: string): string[];
+  legacyProxyLocations?(cwd: string): LegacyProxyLocation[];
   /**
    * How the proxy entry tells the agent where the project is, without ever
    * writing a machine path into a project file: `'workspace-variable'` uses
    * `${workspaceFolder}` (expanded by the agent); `'omit'` leaves `cwd` out
    * because the agent already starts servers inside the project.
    */
-  projectDir: 'omit' | 'workspace-variable';
+  projectDir: 'omit' | 'workspace-variable' | 'workspace-env';
+  /** Whether this agent requires the stdio transport discriminator. */
+  stdioType?: boolean;
+  /** Additional step required before the agent can use the project registration. */
+  registrationNote?: string;
+  /** Registration managed in an agent-wide settings file instead of a project config. */
+  globalRegistration?: GlobalRegistration;
   /** Built-in slash commands of the agent, used to warn about skill name clashes. */
   nativeCommands?: readonly string[];
   /**

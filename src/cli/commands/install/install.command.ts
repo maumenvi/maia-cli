@@ -40,7 +40,7 @@ export function createInstallCommand(io: ToolkitIo): CommandHandler {
       // what is now on disk (a restored or upgraded skill folder included).
       store.buildLock();
       const toolkits = restoreToolkits(store, lock, 'install', io);
-      restoreConfiguredAgents(store);
+      await restoreConfiguredAgents(store);
       console.log(`Bootstrapped maia.lock.json with ${Object.keys(lock.packages).length} locked entries`);
       console.log(`Installed ${result.skills.length} skills and synced MCP config`);
       console.log(`Installed ${toolkits.installed.length} toolkits`);

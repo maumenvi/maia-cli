@@ -72,5 +72,5 @@ export async function removeToolkit(
   if (dependency.scope === 'global') {
     console.log(`Global tool kept. To uninstall: ${definition.commands.uninstallGlobalToolHint()}`);
   }
-  restoreConfiguredAgents(store);
+  await restoreConfiguredAgents(store);
 }

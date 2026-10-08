@@ -10,11 +10,9 @@ export function injectZedSettings(
   const entry = serverConfig.url
     ? { url: serverConfig.url, ...(serverConfig.headers ? { headers: serverConfig.headers } : {}) }
     : {
-        command: {
-          path: serverConfig.command,
-          args: serverConfig.args ?? [],
-          ...(serverConfig.env ? { env: serverConfig.env } : {}),
-        },
+        command: serverConfig.command,
+        args: serverConfig.args ?? [],
+        ...(serverConfig.env ? { env: serverConfig.env } : {}),
       };
   return {
     ...data,

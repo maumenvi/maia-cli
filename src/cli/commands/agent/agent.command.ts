@@ -1,10 +1,11 @@
 import { agentRegistry } from '../../../agent/agents/registry/agent.registry.ts';
 import type { CommandHandler } from '../../contracts/command.handler.ts';
 import { configureAgents } from './configure.agents.ts';
+import { removeAgents } from './remove.agents.ts';
 import { supportedAgentsMessage } from './supported.agents.message.ts';
 
 /** Performs the agent command operation. */
-export const agentCommand: CommandHandler = async (args, { store }) => {
+export const agentCommand: CommandHandler = async (args, { store, interaction }) => {
   const remaining = args;
   const action = remaining[0];
 
@@ -15,7 +16,7 @@ export const agentCommand: CommandHandler = async (args, { store }) => {
       throw new Error(`Usage: maia add agent <name...>\nSupported agents: ${ids}`);
     }
     store.saveSelectedAgents(agentIds);
-    configureAgents(store, agentIds);
+    await configureAgents(store, agentIds, interaction, true);
     return;
   }
 
@@ -26,13 +27,18 @@ export const agentCommand: CommandHandler = async (args, { store }) => {
       throw new Error(`Usage: maia agent add <name...>\nSupported agents: ${ids}`);
     }
     store.saveSelectedAgents(agentIds);
-    configureAgents(store, agentIds);
+    await configureAgents(store, agentIds, interaction, true);
+    return;
+  }
+
+  if (action === 'rm' || action === 'remove') {
+    await removeAgents(store, remaining.slice(1), interaction);
     return;
   }
 
   if (action && action !== 'ls' && action !== 'list') {
     store.saveSelectedAgents(remaining);
-    configureAgents(store, remaining);
+    await configureAgents(store, remaining, interaction, true);
     return;
   }
 

@@ -52,7 +52,14 @@ try {
   const result = spawnSync(process.execPath, testArguments, {
     cwd: rootDir,
     stdio: 'inherit',
-    env: { ...process.env, MAIA_CONFIG_HOME: configHome },
+    env: {
+      ...process.env,
+      MAIA_CONFIG_HOME: configHome,
+      CLINE_MCP_SETTINGS_PATH: path.join(configHome, 'cline', 'settings.json'),
+      CLINE_DATA_DIR: path.join(configHome, 'cline-data'),
+      XDG_CONFIG_HOME: path.join(configHome, 'xdg'),
+      APPDATA: path.join(configHome, 'appdata'),
+    },
   });
 
   if (result.error) {

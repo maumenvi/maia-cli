@@ -12,7 +12,7 @@ import { promptForAgentIds } from './prompt.for.agent.ids.ts';
 import { restoreConfiguredAgents } from './restore.configured.agents.ts';
 
 /** Performs the init command operation. */
-export const initCommand: CommandHandler = async (args, { store }) => {
+export const initCommand: CommandHandler = async (args, { store, interaction }) => {
   assertManifestSchemaCompatible(store.peekManifestVersion(), createDefaultManifest().maiaVersion);
 
   const explicitAgentIds = normalizeAgentIds(args);
@@ -45,7 +45,7 @@ export const initCommand: CommandHandler = async (args, { store }) => {
       ensureAgentGuidanceFile(path.resolve(paths.stateDir, 'AGENTS.md'));
     }
     console.log('Initialized maia manifest, lockfile, and fallback capability folders');
-    restoreConfiguredAgents(store);
+    await restoreConfiguredAgents(store, interaction, true);
     return;
   }
 
@@ -55,5 +55,5 @@ export const initCommand: CommandHandler = async (args, { store }) => {
   store.saveSelectedAgents(selectedIds);
 
   console.log('Initialized maia manifest, lockfile, and agent configuration');
-  configureAgents(store, selectedIds);
+  await configureAgents(store, selectedIds, interaction, true);
 };

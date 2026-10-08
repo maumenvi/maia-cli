@@ -49,7 +49,7 @@ export const mcpCommand: CommandHandler = async (args, { store, interaction = DE
     console.log(`Installed mcp:${selected.name}`);
     // Installing must leave the MCP ready to use, so push it into every
     // configured agent instead of waiting for a separate sync.
-    restoreConfiguredAgents(store);
+    await restoreConfiguredAgents(store);
     const warning = warnWhenNoAgentConfigured(store);
     if (warning) console.warn(warning);
     return;

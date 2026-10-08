@@ -150,6 +150,16 @@ export class AgentCatalogStore {
     this.saveManifest(manifest);
   }
 
+  /** Removes only the selected agent entries from the manifest. */
+  removeSelectedAgents(agentIds: string[]): void {
+    const manifest = this.loadManifest();
+    const removed = new Set(agentIds);
+    manifest.agents = Object.fromEntries(
+      Object.entries(manifest.agents).filter(([id]) => !removed.has(id)),
+    );
+    this.saveManifest(manifest);
+  }
+
   /** Declares (or replaces) a toolkit in the manifest. */
   setToolkit(name: string, dependency: ToolkitDependency): void {
     const manifest = this.loadManifest();

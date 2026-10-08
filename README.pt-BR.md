@@ -222,15 +222,19 @@ O `configureAgents` grava o proxy `maia` e as capacidades autorizadas nos locais
 | --- | --- | --- | --- |
 | Claude | `.mcp.json` | `.claude/skills/<nome>/` | `CLAUDE.md` |
 | VS Code Copilot | `.vscode/mcp.json` | `.github/skills/<nome>/` | `.github/copilot-instructions.md` |
-| Cursor ⚠️ | `.cursor/mcp.json` | — | `.cursor/rules/maia.mdc` |
-| Zed | `.zed/settings.json` | — | `AGENTS.md` |
-| Cline ⚠️ | `.cline/mcp.json` | — | `.clinerules/maia.md` |
-| Continue ⚠️ | `.continue/config.json` | — | `AGENTS.md` |
+| Cursor | `.cursor/mcp.json` | — | `.cursor/rules/maia.mdc` |
+| Zed ⚠️ | `.zed/settings.json` | — | `AGENTS.md` |
+| Cline | `cline_mcp_settings.json` global (chave por projeto) | — | `.clinerules/maia.md` |
+| Continue | `.continue/mcpServers/maia.yaml` | — | `AGENTS.md` |
 | OpenAI Codex | `.codex/config.toml` | — | `AGENTS.md` |
 
-⚠️ Veja [Erros conhecidos](#erros-conhecidos): o registro nesses agentes pode ainda não ter efeito.
+⚠️ Veja [Erros conhecidos](#erros-conhecidos): as configurações por projeto do Zed ainda precisam ser validadas num cliente real.
 
-Nenhum arquivo de projeto escrito para um agente contém caminho da máquina, então eles podem ser versionados e compartilhados. Copilot e Cursor recebem `"cwd": "${workspaceFolder}"`; os demais agentes iniciam os servidores dentro do projeto, e o `maia mcp-server` encontra o projeto sozinho: por `CLAUDE_PROJECT_DIR` (definida pelo Claude Code) ou subindo a partir da pasta em que foi iniciado. Fora de qualquer projeto ele termina com erro, em vez de criar `.maia/` ali.
+Nenhum arquivo de projeto escrito para um agente contém caminho da máquina, então eles podem ser versionados e compartilhados. Copilot recebe `"cwd": "${workspaceFolder}"`; Cursor recebe `env.MAIA_PROJECT_DIR="${workspaceFolder}"`. As configurações globais do Cline necessariamente contêm a raiz absoluta do projeto em `MAIA_PROJECT_DIR`. Para os demais agentes, `maia mcp-server` encontra o projeto por `MAIA_PROJECT_DIR`, `CLAUDE_PROJECT_DIR` (definida pelo Claude Code) ou subindo a partir da pasta em que foi iniciado. Fora de qualquer projeto ele termina com erro, em vez de criar `.maia/` ali.
+
+Use `maia agent rm <nome...>` (ou `maia agent remove`) para remover um ou mais agentes deste projeto. O comando remove somente a configuração do Maia e o bloco de instruções gerenciado; cópias nativas de skills são mantidas. A remoção da entrada global do Cline exige confirmação interativa.
+
+O Cline não tem configuração MCP por workspace: depois da confirmação, o servidor do projeto fica visível em todas as janelas do Cline. A chave global inclui o nome da pasta e um hash do caminho; use `maia agent rm cline` quando o projeto não for mais necessário.
 
 No Claude Code, o proxy é registrado em `.mcp.json` (o Claude Code pede para aprovar servidores de projeto na primeira vez). Projetos configurados por versões antigas do Maia tinham o registro em `.claude/claude_desktop_config.json`, que o Claude Code nunca lê: o próximo `maia i`, `maia init claude` ou `maia mcp add` move a entrada `maia` para `.mcp.json` e preserva as suas outras entradas. Um `.mcp.json` inválido nunca é sobrescrito. O bloco de instruções só afirma que o proxy está registrado quando isso de fato aconteceu, e cita o arquivo.
 
@@ -394,20 +398,18 @@ maia version
 
 ## Erros conhecidos
 
-Problemas em aberto encontrados ao corrigir o registro no Claude Code na 1.7.0. Eles vão virar uma especificação própria; até lá, use os contornos abaixo.
+Limitações de compatibilidade e pendências conhecidas:
 
 | Área | Problema | Contorno |
 | --- | --- | --- |
-| Cursor | O Maia grava o proxy na chave `servers` do `.cursor/mcp.json`, mas o Cursor lê `mcpServers`, então o servidor `maia` provavelmente não aparece. | Edite o `.cursor/mcp.json` e renomeie a chave `servers` para `mcpServers`. |
-| Cline | O Cline lê servidores MCP só do arquivo global `cline_mcp_settings.json`; o `.cline/mcp.json` que o Maia grava no projeto não tem efeito. | Copie a entrada `maia` do `.cline/mcp.json` para as configurações de MCP do Cline, com `cwd` apontando para a pasta do projeto. |
-| Continue | O Maia grava `.continue/config.json`; o Continue atual usa YAML (`.continue/mcpServers/*.yaml`). | Crie `.continue/mcpServers/maia.yaml` listando um servidor MCP (`name: maia`, `command: maia`, `args: [mcp-server, --agent, continue]`). |
-| OpenAI Codex | O `.codex/config.toml` do projeto só vale quando o Codex confia no projeto. | Marque o projeto como confiável no Codex. |
+| Cline | O servidor global fica visível em todas as janelas do Cline; o Maia grava a raiz do projeto nas configurações do usuário somente após consentimento interativo. | Desative a entrada do projeto nas configurações do Cline ou rode `maia agent rm cline`. |
+| OpenAI Codex | O `.codex/config.toml` do projeto só vale quando o Codex confia no projeto. | Confie no projeto quando o Codex perguntar. |
 | Zed | O formato do registro e a pasta de início não foram verificados numa sessão real do Zed. | Relate o que observar. |
 | Skills `.well-known` | Arquivos publicados como `.zip` não são descompactados; só o `SKILL.md` é instalado, com aviso. | Peça ao publicador um `.tar.gz` ou instale a partir do repositório Git. |
 | Lockfile v3 | Versões do Maia anteriores à 1.7.0 recusam o `maia.lock.json` com skills de pasta (`lockfileVersion: 3`). | Atualize o Maia em todas as máquinas e no CI ao mesmo tempo. |
 | `maia mcp sync` | Sincroniza só o `.vscode/mcp.json`; os outros agentes não são atualizados. | Rode `maia i` para atualizar todos os agentes configurados. |
 
-Nenhuma das linhas de agentes acima foi reproduzida com o agente real ainda; elas vêm do código do Maia e da documentação pública de cada agente.
+O carregamento por projeto do Zed e as conexões ponta a ponta de todos os clientes ainda precisam de validação manual; veja [o roteiro de validação dos agentes](docs/agents/validation.md).
 
 ## Mais documentação
 

@@ -1,19 +1,25 @@
-import path from 'node:path';
-
 import { collectAgentMcpEntries } from '../../../agent/agents/inject/collect.agent.mcp.entries.ts';
-import { hasMaiaProxyEntry } from '../../../agent/agents/inject/has.maia.proxy.entry.ts';
 import { injectAgentConfig } from '../../../agent/agents/inject/inject.agent.config.ts';
-import { removeAgentMcpEntry } from '../../../agent/agents/inject/remove.agent.mcp.entry.ts';
+import { migrateLegacyProxyLocations } from '../../../agent/agents/inject/migrate.legacy.proxy.locations.ts';
 import { resolveConfigPath } from '../../../agent/agents/inject/resolve.config.path.ts';
 import { writeAgentCapabilityProfile } from '../../../agent/agents/profiles/write.agent.capability.profile.ts';
 import type { AgentCatalogStore } from '../../../agent/catalog/store/agent.catalog.store.ts';
+import type { CliInteraction } from '../../contracts/cli.interaction.ts';
+import { DEFAULT_INTERACTION } from '../../shared/terminal/default.interaction.ts';
 import { isProjectLocalConfig } from './is.project.local.config.ts';
 import { materializeAgentSkills } from './materialize.agent.skills.ts';
+import { offerClineGlobalRegistration } from './offer.cline.global.registration.ts';
+import { resolveClineRegistration } from './resolve.cline.registration.ts';
 import { resolveTargets } from './resolve.targets.ts';
 import { writeAgentInstructions } from './write.agent.instructions.ts';
 
 /** Performs the configure agents operation. */
-export function configureAgents(store: AgentCatalogStore, agentIds: string[]): void {
+export async function configureAgents(
+  store: AgentCatalogStore,
+  agentIds: string[],
+  interaction: CliInteraction = DEFAULT_INTERACTION,
+  offerGlobalRegistration = false,
+): Promise<void> {
   const targets = resolveTargets(agentIds);
   const cwd = store.getPaths().projectRoot;
 
@@ -29,26 +35,41 @@ export function configureAgents(store: AgentCatalogStore, agentIds: string[]): v
       continue;
     }
 
-    const entries = collectAgentMcpEntries(store, target);
-    const { created, updated, configPath: finalPath } = injectAgentConfig(target, configPath, entries);
-    const action = created ? 'Created' : updated ? 'Updated' : 'No change in';
-    const mcpCount = entries.length - 1;
-    console.log(`${action} ${target.name} config: ${finalPath}`);
-    console.log(`Registered ${mcpCount} MCP server(s) plus the "maia" proxy in ${target.name}.`);
-    for (const legacyPath of target.legacyConfigPaths?.(cwd) ?? []) {
-      // Older Maia versions registered the proxy in a file the agent never
-      // reads; move only our own entry and leave the file in place.
-      try {
-        if (hasMaiaProxyEntry(target, legacyPath)) {
-          removeAgentMcpEntry(target, legacyPath, 'maia');
-          console.log(`Moved the "maia" proxy from ${path.relative(cwd, legacyPath)} to ${path.relative(cwd, finalPath)}.`);
+    let finalPath = configPath;
+    let registration: import('../../../agent/agents/contracts/agent.registration.ts').AgentRegistration;
+    if (target.globalRegistration) {
+      const inspection = resolveClineRegistration(target, cwd);
+      registration = offerGlobalRegistration
+        ? await offerClineGlobalRegistration(target, cwd, interaction, inspection)
+        : inspection.registration;
+      if (registration.status === 'registered') {
+        finalPath = registration.configPath;
+        const action = inspection.registration.status === 'registered' ? 'Already registered' : 'Registered';
+        console.log(`${action} the "maia" proxy for ${target.name} in ${finalPath}.`);
+        applied = true;
+      } else {
+        console.log(`Cline: "maia" proxy not registered yet; run "maia agent add cline" to register it.`);
+        if (registration.status === 'pending') console.log(registration.manualStep);
+        if (inspection.candidatePaths.length === 0) {
+          console.log('Cline settings file not found; open Cline once and run "maia agent add cline" again.');
         }
-      } catch (error) {
-        console.warn(`warning: ${error instanceof Error ? error.message : String(error)}`);
       }
-    }
-    if (target.id === 'claude' && created) {
-      console.log('Claude Code asks you to approve project MCP servers from .mcp.json the first time; approve "maia".');
+      for (const message of migrateLegacyProxyLocations(target, cwd, finalPath)) console.log(message);
+    } else {
+      const entries = collectAgentMcpEntries(store, target);
+      const result = injectAgentConfig(target, configPath, entries);
+      finalPath = result.configPath;
+      registration = { status: 'registered', configPath: finalPath };
+      const action = result.created ? 'Created' : result.updated ? 'Updated' : 'No change in';
+      const mcpCount = entries.length - 1;
+      console.log(`${action} ${target.name} config: ${finalPath}`);
+      console.log(`Registered ${mcpCount} MCP server(s) plus the "maia" proxy in ${target.name}.`);
+      if (target.registrationNote) console.log(target.registrationNote);
+      for (const message of migrateLegacyProxyLocations(target, cwd, finalPath)) console.log(message);
+      if (target.id === 'claude' && result.created) {
+        console.log('Claude Code asks you to approve project MCP servers from .mcp.json the first time; approve "maia".');
+      }
+      applied = true;
     }
 
     const copiedSkills = materializeAgentSkills(store, target);
@@ -56,7 +77,7 @@ export function configureAgents(store: AgentCatalogStore, agentIds: string[]): v
       console.log(`Copied ${copiedSkills.length} skill(s) into ${target.name}'s native skills directory.`);
     }
 
-    const instructionsFile = writeAgentInstructions(store, target, { status: 'registered', configPath: finalPath });
+    const instructionsFile = writeAgentInstructions(store, target, registration);
     if (instructionsFile) {
       console.log(`Updated capability guidance for ${target.name}: ${instructionsFile}`);
     }
@@ -65,7 +86,6 @@ export function configureAgents(store: AgentCatalogStore, agentIds: string[]): v
     if (target.id !== 'copilot') {
       console.log('Restart the agent/app to pick up the new MCP server.');
     }
-    applied = true;
   }
 
   if (!applied) {

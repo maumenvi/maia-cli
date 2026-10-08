@@ -86,8 +86,13 @@ describe('collectAgentMcpEntries', () => {
         const [entry] = collectAgentMcpEntries(store, target);
         const serialized = JSON.stringify(entry);
         assert.equal(serialized.includes(projectRoot), false, `${target.id} leaks the project path`);
-        const expected = target.id === 'copilot' || target.id === 'cursor' ? '${workspaceFolder}' : undefined;
-        assert.equal(entry.config.cwd, expected, `${target.id} cwd`);
+        if (target.id === 'cursor') {
+          assert.equal(entry.config.env?.MAIA_PROJECT_DIR, '${workspaceFolder}', `${target.id} project env`);
+          assert.equal(entry.config.cwd, undefined, `${target.id} cwd`);
+        } else {
+          const expected = target.id === 'copilot' ? '${workspaceFolder}' : undefined;
+          assert.equal(entry.config.cwd, expected, `${target.id} cwd`);
+        }
       }
     });
   });

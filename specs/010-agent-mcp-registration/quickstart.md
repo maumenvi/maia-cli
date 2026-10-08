@@ -17,8 +17,9 @@ npm test
 node --test tests/agents/contract/*.test.ts
 ```
 
-Esperado: tudo verde. Alterar a chave de um alvo (ex.: Cursor de volta para `servers`) faz
-o teste de contrato do Cursor falhar (SC-004).
+Esperado: tudo verde, incluindo os sete contratos literais. Alterar a chave de um alvo (ex.:
+Cursor de volta para `servers`) faz o contrato correspondente falhar (SC-004). A execução com
+agentes reais é separada e segue o roteiro em [docs/agents/validation.md](../../docs/agents/validation.md).
 
 ## 2. Migração de legado (sem agentes reais)
 
@@ -36,7 +37,7 @@ Esperado:
 - `.continue/mcpServers/maia.yaml` criado; `.continue/config.json` só sem `mcpServers.maia`.
 - `.cline/mcp.json` sem `servers.maia`; `servers.other` intacto.
 - Saída com uma linha `Moved …`/`Removed …` por arquivo; Cline em `pending` (sem TTY) com o
-  passo manual; `.clinerules/maia.md` sem afirmar registro.
+  passo manual; `.clinerules/maia.md` sem afirmar registro nem conter caminho absoluto.
 - Rodar de novo: nenhuma linha `Moved`/`Removed`, só `No change in …`.
 
 ## 3. Cline global (TTY, home temporária)
@@ -47,10 +48,13 @@ mkdir -p "$HOME/.cline/data/settings"
 echo '{"mcpServers":{"other":{"command":"x"}}}' > "$HOME/.cline/data/settings/cline_mcp_settings.json"
 maia agent add cline     # responder "n": arquivo intacto, situação pending
 maia agent add cline     # responder "y": entrada maia-<slug>-<hash> gravada, "other" intacto
-maia agent add cline     # sem pergunta: "already registered"
+maia agent add cline     # sem pergunta: já registrado
 maia mcp add <mcp-exato> # nunca pergunta sobre o Cline
 maia agent rm cline      # responder "y": só a chave do projeto sai do global
 ```
+
+`maia agent rm <id...>` também remove os registros do projeto, os blocos de instrução
+gerenciados e os perfis Maia; não apaga cópias de skills nas pastas nativas dos agentes.
 
 ## 4. Roteiro com os agentes reais (manual, SC-001/SC-005)
 
@@ -65,7 +69,9 @@ esperado em cada um, num projeto com `maia init <id>` e um MCP instalado:
 | Zed | Agent Panel → servidores de contexto | `maia` ativo; **confirmar que o Zed lê `context_servers` de `.zed/settings.json`** |
 | Codex | `/mcp` na sessão | `maia` listado depois de marcar o projeto como confiável |
 
-Registrar o resultado (versão do agente, data, ok/falha) em `docs/agents/validation.md`.
+Registrar o resultado (versão do agente, data, ok/falha) em
+[`docs/agents/validation.md`](../../docs/agents/validation.md). A execução real não foi feita
+como parte dos testes automatizados.
 Uma divergência confirmada no agente real vira correção desta feature (US4, cenário 3).
 
 ## 5. Sem caminho absoluto (FR-008)

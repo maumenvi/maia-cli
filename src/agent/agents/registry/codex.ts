@@ -12,6 +12,7 @@ export const codex: AgentTarget = {
     return [join(cwd, '.codex', 'config.toml')];
   },
   projectDir: 'omit',
+  registrationNote: 'Codex applies .codex/config.toml only in trusted projects: trust this project when Codex asks.',
   instructionsFile(cwd) {
     return join(cwd, 'AGENTS.md');
   },

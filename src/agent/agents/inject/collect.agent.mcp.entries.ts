@@ -15,5 +15,5 @@ import { mcpEntry } from '../registry/mcp.entry.ts';
  * Registering both also exposed every tool twice.
  */
 export function collectAgentMcpEntries(_store: AgentCatalogStore, target: AgentTarget): AgentMcpEntry[] {
-  return [mcpEntry(target.id, target.projectDir)];
+  return [mcpEntry(target.id, target.projectDir, target.stdioType)];
 }

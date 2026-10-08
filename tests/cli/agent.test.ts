@@ -110,7 +110,8 @@ describe('CLI agent/init', () => {
       assert.ok(manifest.agents.claude);
       assert.equal(manifest.agents.claude.name, 'Claude');
       assert.equal(existsSync(path.resolve(tempDir, 'maia.json')), true);
-      assert.match(readFileSync(path.resolve(tempDir, '.codex', 'config.toml'), 'utf8'), /"--agent","codex"/);
+      assert.match(readFileSync(path.resolve(tempDir, '.codex', 'config.toml'), 'utf8'), /\[mcp_servers\.maia\]/);
+      assert.match(readFileSync(path.resolve(tempDir, '.codex', 'config.toml'), 'utf8'), /args = \["mcp-server", "--agent", "codex"\]/);
     } finally {
       process.chdir(originalCwd);
       rmSync(tempDir, { recursive: true, force: true });
@@ -269,8 +270,8 @@ describe('CLI agent/init', () => {
 
       assert.ok(existsSync(codexConfig));
       const contents = readFileSync(codexConfig, 'utf8');
-      assert.match(contents, /\[mcp_servers\]/);
-      assert.match(contents, /maia\s*=\s*\{/);
+      assert.match(contents, /\[mcp_servers\.maia\]/);
+      assert.match(contents, /command = "maia"/);
     } finally {
       process.chdir(originalCwd);
       rmSync(tempDir, { recursive: true, force: true });
@@ -361,7 +362,7 @@ describe('CLI agent/init', () => {
       assert.ok(existsSync(existing));
       const contents = readFileSync(existing, 'utf8');
       assert.match(contents, /existing = \{ command = "old", args = \["x"\] \}/);
-      assert.doesNotMatch(contents, /maia\s*=\s*\{/);
+      assert.doesNotMatch(contents, /\[mcp_servers\.maia\]/);
     } finally {
       process.chdir(originalCwd);
       process.env.HOME = originalHome;
@@ -381,8 +382,8 @@ describe('CLI agent/init', () => {
       await initCommand(['codex'], { store: new AgentCatalogStore({ cwd: tempDir }) });
 
       const contents = readFileSync(path.resolve(tempDir, '.codex', 'config.toml'), 'utf8');
-      assert.equal((contents.match(/maia\s*=\s*\{/g) ?? []).length, 1);
-      assert.doesNotMatch(contents, /maia\s*=\s*\{\s*maia\s*=\s*\{/);
+      assert.equal((contents.match(/^\[mcp_servers\.maia\]$/gm) ?? []).length, 1);
+      assert.doesNotMatch(contents, /\[mcp_servers\]\s*\[mcp_servers\.maia\]/);
     } finally {
       process.chdir(originalCwd);
       rmSync(tempDir, { recursive: true, force: true });

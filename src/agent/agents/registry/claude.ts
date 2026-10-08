@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 
 import type { AgentTarget } from '../contracts/agent.target.ts';
+import type { LegacyProxyLocation } from '../contracts/legacy.proxy.location.ts';
 
 /** Defines the claude value. */
 export const claude: AgentTarget = {
@@ -10,8 +11,8 @@ export const claude: AgentTarget = {
   configPaths(cwd) {
     return [join(cwd, '.mcp.json')];
   },
-  legacyConfigPaths(cwd) {
-    return [join(cwd, '.claude', 'claude_desktop_config.json')];
+  legacyProxyLocations(cwd): LegacyProxyLocation[] {
+    return [{ path: join(cwd, '.claude', 'claude_desktop_config.json'), format: 'mcp-servers' }];
   },
   projectDir: 'omit',
   // Built-in Claude Code slash commands; a skill with one of these names is ambiguous.

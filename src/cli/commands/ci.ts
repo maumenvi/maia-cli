@@ -90,7 +90,7 @@ export function createCiCommand(io: ToolkitIo): CommandHandler {
       throw new Error(formatLockVerificationProblems(problems));
     }
 
-    restoreConfiguredAgents(store);
+    await restoreConfiguredAgents(store);
     console.log(`Verified ${Object.keys(lock.packages).length} locked entries`);
     console.log(`Reinstalled ${materialized.length} skills and synced MCP config`);
     console.log(`Installed ${toolkitsInstalled.length} toolkits`);

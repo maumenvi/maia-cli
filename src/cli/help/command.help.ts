@@ -1,5 +1,6 @@
 const AGENT = [
   'maia agent add <name...>',
+  'maia agent rm|remove <name...>',
   'maia add agent <name...>',
   'maia add <name...>',
   'maia agent ls',

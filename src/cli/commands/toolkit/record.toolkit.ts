@@ -20,5 +20,5 @@ export async function recordToolkit(store: AgentCatalogStore, name: string, depe
       undo: () => { if (lockBefore) store.saveLock(lockBefore); },
     },
   ]);
-  restoreConfiguredAgents(store);
+  await restoreConfiguredAgents(store);
 }

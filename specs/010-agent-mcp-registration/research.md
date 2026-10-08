@@ -10,11 +10,11 @@ como **a confirmar no agente real** entram no roteiro manual do [quickstart.md](
 |--------|-----------------------------------|------------------|-----------------|-------------------------|----------|
 | `claude` | `.mcp.json` | `mcpServers.<nome>` com `command`/`args` | pasta de lançamento; `CLAUDE_PROJECT_DIR` no ambiente | igual | ok (009) |
 | `copilot` | `.vscode/mcp.json` | `servers.<nome>`; VS Code expande `${workspaceFolder}` em `cwd` | — | igual | ok (009) |
-| `cursor` | `.cursor/mcp.json` | `mcpServers.<nome>` com `type: "stdio"`, `command`, `args`, `env`; variáveis expandidas em `command`, `args`, `env`, `url`, `headers` ([docs](https://cursor.com/docs/mcp)). `cwd` **não** é documentado | não documentada | `servers.maia` com `cwd: ${workspaceFolder}` | **errado**: chave e `cwd` |
-| `continue` | `.continue/mcpServers/*.yaml` (também aceita JSON no mesmo formato de Claude/Cursor) | bloco com `name`, `version`, `schema: v1` e `mcpServers` como lista de `{ name, type, command, args, env }` ([docs](https://docs.continue.dev/customize/deep-dives/mcp)); `config.json` está marcado como deprecated | workspace aberto | `.continue/config.json` com `mcpServers.maia` (objeto) | **errado**: arquivo e formato |
-| `cline` | só global: `cline_mcp_settings.json` | `mcpServers.<nome>` com `command`, `args`, `env` (+ `disabled`, `autoApprove` opcionais) | fora do projeto (processo da extensão) | `.cline/mcp.json` no projeto | **sem efeito** |
-| `zed` | `.zed/settings.json` (configurações de projeto) | `context_servers.<nome>` com `command`, `args`, `env` planos ([docs](https://zed.dev/docs/ai/mcp)) | raiz do projeto ([zed#35354](https://github.com/zed-industries/zed/issues/35354)) | `context_servers.maia.command = { path, args }` (forma antiga aninhada) | **formato antigo**; leitura em settings de projeto **a confirmar no agente real** |
-| `codex` | `.codex/config.toml` (só em projeto confiável) | tabela `[mcp_servers.<nome>]` com `command`, `args`, `env`, `cwd` ([docs](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)) | pasta atual da sessão | `[mcp_servers]` com `maia = { … }` em várias linhas e vírgulas | **arriscado**: tabela inline com quebra de linha só é válida em TOML 1.1 |
+| `cursor` | `.cursor/mcp.json` | `mcpServers.<nome>` com `type: "stdio"`, `command`, `args`, `env`; variáveis expandidas em `command`, `args`, `env`, `url`, `headers` ([docs](https://cursor.com/docs/mcp)). `cwd` **não** é documentado | não documentada | `mcpServers.maia` com `type: "stdio"` e `env.MAIA_PROJECT_DIR=${workspaceFolder}` | implementado; cliente real ainda não testado |
+| `continue` | `.continue/mcpServers/*.yaml` (também aceita JSON no mesmo formato de Claude/Cursor) | bloco com `name`, `version`, `schema: v1` e `mcpServers` como lista de `{ name, type, command, args, env }` ([docs](https://docs.continue.dev/customize/deep-dives/mcp)); `config.json` está marcado como deprecated | workspace aberto | `.continue/mcpServers/maia.yaml` com um servidor Maia | implementado; cliente real ainda não testado |
+| `cline` | só global: `cline_mcp_settings.json` | `mcpServers.<nome>` com `command`, `args`, `env` (+ `disabled`, `autoApprove` opcionais) | fora do projeto (processo da extensão) | candidato global existente, entrada por projeto após consentimento | implementado; registro aparece em todas as janelas Cline |
+| `zed` | `.zed/settings.json` (configurações de projeto) | `context_servers.<nome>` com `command`, `args`, `env` planos ([docs](https://zed.dev/docs/ai/mcp)) | raiz do projeto ([zed#35354](https://github.com/zed-industries/zed/issues/35354)) | `context_servers.maia` com campos planos | formato implementado; leitura em settings de projeto a confirmar no agente real |
+| `codex` | `.codex/config.toml` (só em projeto confiável) | tabela `[mcp_servers.<nome>]` com `command`, `args`, `env`, `cwd` ([docs](https://developers.openai.com/codex/mcp)) | pasta atual da sessão | `[mcp_servers.maia]` com `command` e `args`; saída e instruções avisam sobre confiança | implementado; cliente real ainda não testado |
 
 **Decision**: corrigir Cursor, Continue, Zed e Codex no formato documentado, com migração do
 que o Maia gravou antes; Cline ganha registro global com confirmação (D3–D6).
@@ -101,28 +101,27 @@ migrar todos os manifestos por um caso só do Cline.
 
 ## D5 — Cline: quando perguntar
 
-`configureAgents` é síncrona e chamada por `restoreConfiguredAgents` em ~10 fluxos (`mcp add`,
-`i`, `ci`, `remove`, `skills`, `toolkit` …). Perguntar sobre um arquivo global a cada
+`configureAgents` é assíncrona e chamada por `restoreConfiguredAgents` em fluxos como `mcp
+add`, `i`, `ci`, `remove`, `skills` e `toolkit`. Perguntar sobre um arquivo global a cada
 `maia mcp add` seria intrusivo e repetiria a pergunta depois de uma recusa; a entrada global
 também não muda quando capacidades mudam (o proxy agrega tudo).
 
 **Decision**:
-- `configureAgents` continua síncrona e, para o Cline, **só lê**: calcula a situação do
+- `configureAgents` é assíncrona e, para o Cline, **só lê por padrão**: calcula a situação do
   registro (`registered` se algum candidato existente tem a entrada atual do projeto;
   `pending` caso contrário) e escreve o bloco de instruções e a saída de acordo.
-- Nova função assíncrona `offerClineGlobalRegistration(store, interaction)`, chamada só por
-  `maia init` e `maia agent add` quando `cline` está entre os agentes pedidos **e** o
-  registro está pendente. Sem TTY, projeto local-only, recusa ou nenhum candidato → nada
-  é gravado; a situação fica `pending` com o passo manual.
+- `offerClineGlobalRegistration` recebe o `CliInteraction` injetável e só é habilitada por
+  `maia init` e `maia agent add` quando `cline` está entre os agentes pedidos. Operações de
+  restauração, como `maia mcp add`, nunca passam essa permissão. Sem TTY, projeto local-only,
+  recusa, JSON inválido ou nenhum candidato → nada é gravado; a situação fica `pending`.
 - A confirmação usa o `CliInteraction.confirm` existente (injetável nos testes; padrão
   "não"; sem TTY sempre "não").
 
 **Rationale**: consentimento explícito num comando de configuração de agente, nunca como
-efeito colateral; nenhuma mudança de assinatura em cadeia.
+efeito colateral das operações comuns de instalação e restauração.
 
-**Alternatives considered**: tornar `configureAgents` assíncrona em todos os fluxos → muda
-~10 chamadas e ainda pergunta em `maia ci`; gravar o global sem perguntar em fluxos de
-restauração → viola FR-006.
+**Alternatives considered**: perguntar em todos os fluxos de restauração → intrusivo e viola
+FR-006; gravar o global sem confirmação explícita → também viola FR-006.
 
 ## D6 — Situação do registro no bloco e na saída (FR-007)
 
@@ -135,7 +134,8 @@ restauração → viola FR-006.
 ```
 
 - `pending` (Cline): o bloco diz que nenhum MCP está registrado ainda, mostra o arquivo a
-  editar e a entrada JSON exata, e indica `maia agent add cline` para o Maia gravar.
+  editar e a entrada JSON exata, e indica `maia agent add cline` para o Maia gravar. O caminho
+  do projeto no bloco é substituído por `<absolute path of this project>`.
 - `note` (Codex): `AgentTarget.registrationNote` = aviso de projeto confiável; aparece no bloco
   e na saída sempre que o registro é escrito.
 - `registered` do Cline aponta para o arquivo global (caminho exibido com `~` no lugar da home,
@@ -218,7 +218,7 @@ writers só gravam quando o conteúdo serializado muda (`InjectResult.changed`),
   (novo campo do alvo: grava `type: "stdio"`, exigido pela doc do Cursor).
 - Zed: `injectZedSettings` passa a gravar `{ command, args, env? }` planos.
 - Codex: `injectTomlMcpServers` passa a gravar a tabela padrão `[mcp_servers.maia]` (com
-  subtabela `[mcp_servers.maia.env]` quando houver `env`) e a remover tanto a forma inline
+  `env` como tabela inline quando houver valores) e a remover tanto a forma inline
   antiga (`maia = { … }` sob `[mcp_servers]`) quanto uma tabela `[mcp_servers.maia]`
   existente antes de reescrever. Outras tabelas e chaves do arquivo ficam intactas.
 - Cline: formato `mcp-servers` aplicado ao arquivo global (D4).
