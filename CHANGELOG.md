@@ -5,6 +5,19 @@ All notable changes to the Maia CLI are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.1] - 2026-10-09
+
+### Added
+- Native MCP proxy registration for supported agents, using each agent's canonical
+  configuration location. Cline registration is stored in user-level settings only
+  after interactive consent.
+- `maia agent rm <name...>` to remove Maia's agent configuration and managed
+  instruction block; removing a Cline project entry requires interactive confirmation.
+
+### Fixed
+- Agent setup and restore flows now configure the Maia MCP proxy consistently, including
+  migration of legacy registrations while preserving other configuration entries.
+
 ## [1.7.0] - 2026-10-02
 
 ### Fixed
